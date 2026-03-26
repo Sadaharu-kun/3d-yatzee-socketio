@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Socket.IO Chat</title>
+        <link rel="stylesheet" href="css/output.css" />
+    </head>
+    <body>
+        <!-- Chatt till sidan -->
+        <aside id="sidebar-chat"></aside>
+        <main id="dice-game"></main>
+        <h1>Chat</h1>
+        <div id="userContainer"></div>
+        <div id="user">
+            <form id="formUser"><input type="text" id="inputUser" /><button>Skriv in ditt namn</button></form>
+        </div>
+        <div id="message">
+            <form id="formMessage"><input type="text" id="inputMessage" /><button>Skicka ett meddelande</button></form>
+        </div>
+        <h2>Chat meddelanden</h2>
+        <ul id="messages"></ul>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="client.js"></script>
+    </body>
+</html>
