@@ -1,10 +1,15 @@
-addEventListener('DOMContentLoaded', async () => {
-    const sidebarChat = document.querySelector('#sidebar-chat') as HTMLElement;
-    const diceGame = document.querySelector('#dice-game') as HTMLElement;
+import { GameRender } from './yatzeeGame/gameRenderer.ts';
 
-    if (!sidebarChat || !diceGame) {
-        console.error('sidebar eller main elementen saknas!');
+addEventListener('DOMContentLoaded', async () => {
+    const sidebarChatContainer = document.querySelector('#sidebar-chat-container') as HTMLElement;
+    const yatzeeGameContainer = document.querySelector('#yatzee-game-container') as HTMLElement;
+
+    if (!sidebarChatContainer || !yatzeeGameContainer) {
+        console.error('Container för spel eller chatt saknas!');
+        return;
     }
 
-    
-})
+    console.debug('🪳 new RenderGame instance');
+    const game = new GameRender(yatzeeGameContainer, 'Spelare 1');
+    console.info('instance success');
+});

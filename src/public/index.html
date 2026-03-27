@@ -12,13 +12,12 @@
         <link rel="stylesheet" href="./css/input.css" />
     </head>
     <body class="flex bg-slate-900">
-        <main class="flex-grow text-white" id="yatzee-game
-        ">
-            <header>Die Game</header>
+        <main class="flex-grow text-white" id="yatzee-game-container">
+            <header>Yatzee Game</header>
         </main>
 
         <!-- Chatt till sidan -->
-        <aside class="border-md rounded-md bg-slate-400 p-4" id="sidebar-chat">
+        <aside class="w-24 border-md rounded-md bg-slate-400 p-4" id="sidebar-chat-container">
             <header><h1>Chat</h1></header>
 
             <form id="message-form">
@@ -51,8 +50,9 @@
             </div>
         </aside>
 
-        <script src="sidebarChat.ts"></script>
+        <script type="module" src="sidebarChat.ts"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script type="module" src="client.ts"></script>
+        <script type="module" src="index.ts"></script>
     </body>
 </html>
