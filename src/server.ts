@@ -1,17 +1,28 @@
 import type { Request, Response } from 'express'; // TS allows both types
 import type { Socket } from 'socket.io';
 
+import express from 'express';
+// import cors from 'cors'
+
 // const express, { Request, Response} = require('express');
-const express = require('express');
-const { createServer } = require('node:http');
-const { Server } = require('socket.io');
+import { createServer } from 'node:http';
+import { Server } from 'socket.io';
+import type { UserMessage } from './types.js';
+// const { Server } = require('socket.io');
 
 // MongoDB connection
-const { initDb, getDb } = require('./db');
+// const { initDb, getDb } = require('./db');
 
 const app = express();
+// app.use(cors())
 const server = createServer(app); // wrapps app
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: 'http://localhost:5173',
+        methods: ['GET', 'POST'],
+        credentials: true,
+    },
+});
 
 const port = 3000;
 
@@ -22,7 +33,7 @@ const MessageModel = require('./models/messageModel');
 const connectionMongoDB = require('./connectionMongoDB');
 connectionMongoDB(); */
 // await initDb(); Kan inte använda await överst i commonjs till skillnad mot ES6
-(async () => {
+/* (async () => {
     try {
         await initDb(); // Nu kan använda await
         console.log('Databasen är initierad');
@@ -34,7 +45,7 @@ connectionMongoDB(); */
         console.error('Servern misslyckades:', error);
         process.exit(1);
     }
-})(); // IIFE
+})() */ // IIFE
 
 // Enable after not using vite
 // app.use(express.static('src/public'));
@@ -57,4 +68,13 @@ app.get('/messages', async (req: Request, res: Response) => {
 // Måste använda socket som parameter
 io.on('connection', (socket: Socket) => {
     console.log(`A client with ID ${socket.id} connected to the chat!`);
+
+    socket.on('chatMessage', (msg: UserMessage) => {
+        console.log('socket on chatMessage');
+        io.emit('newChatMessage', msg);
+    });
+});
+
+server.listen(port, () => {
+    console.log(`Socket.IO server running at http://localhost:${port}/`);
 });

@@ -4,7 +4,8 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "dev": "concurrently \"npm run dev:vite\" \"npm run dev:server\"",
+        "dev": "concurrently \"npm run dev:server\" \"npm run dev:vite\"",
+        "dev:front": "vite",
         "dev:server": "tsx watch src/server.ts",
         "dev:vite": "vite",
         "dev:css": "tailwindcss -i ./src/input.css -o ./src/public/css/output.css --watch",
@@ -16,9 +17,11 @@
     "license": "ISC",
     "type": "module",
     "dependencies": {
+        "cors": "^2.8.6",
         "express": "^5.2.1",
         "mongodb": "^7.1.1",
         "socket.io": "^4.8.3",
+        "socket.io-client": "^4.8.3",
         "typescript": "^6.0.2"
     },
     "devDependencies": {
