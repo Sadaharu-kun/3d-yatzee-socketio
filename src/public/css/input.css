@@ -10,8 +10,12 @@ input {
     @apply rounded-md border px-4;
 }
 
+button {
+    @apply rounded-md border bg-blue-500 px-2 shadow-xl hover:bg-blue-700 delay-150 duration-300 transition-all ease-in-out;
+}
+
 header {
-    @apply text-center font-semibold m-2;
+    @apply m-2 text-center font-semibold;
 }
 
 h1 {

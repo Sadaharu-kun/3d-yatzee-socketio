@@ -1,9 +1,11 @@
+import type { KeptDice } from './yatzeeGame.ts';
 import { YatzeeGame } from './yatzeeGame.js';
 
 // Rendera yatzee spelet i DOM
 export class GameRender {
     private yatzeeGame: YatzeeGame;
     private container: HTMLElement;
+    private keptDice: KeptDice = [false, false, false, false, false];
 
     constructor(container: HTMLElement, player: string) {
         console.debug('🪳 GameRender constructor()...');
@@ -13,10 +15,15 @@ export class GameRender {
     }
 
     private render(): void {
+        console.debug('🪳 render()');
         this.container.innerHTML = `
-            <div id="dice-container" class="bg-red-500"></div>
-            <div id="roll-dice-btn" class="bg-blue-500"></div>
-            <div id="score-container" class="bg-green-500"></div>
+        <div class="h-screen bg-purple-400">
+            <div id="dice-container" class="flex flex-grow bg-red-500">dice-container</div>
+            <div id="roll-dice-btn" class="flex justify-center p-4 bg-blue-500 shadow-blue-900">
+                <button>Kasta tärningar</button>
+            </div>
+            <div id="score-container" class="bg-green-500">score container</div>
+        </div>
         `;
 
         this.container.querySelector('#roll-dice-btn')?.addEventListener('click', () => {

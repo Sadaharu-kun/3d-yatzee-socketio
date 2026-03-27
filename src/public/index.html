@@ -13,7 +13,7 @@
     </head>
     <body class="flex bg-slate-900">
         <main class="h-screen flex-grow bg-slate-800 text-white">
-            <header>Yatzee Game</header>
+            <header>Yatzee Game med Socket.IO</header>
             <div id="yatzee-game-container"></div>
         </main>
 
@@ -48,15 +48,13 @@
             <div id="welcome-message"></div>
 
             <h2>Chat meddelanden</h2>
-            <div id="message-container">
-                <div id="display-user"></div>
-                <div id="display-message"></div>
+            <div class="bg-slate-300" id="message-container">
+                <div id="display-user">display user</div>
+                <div id="display-message">display message</div>
             </div>
         </aside>
 
-        <script type="module" src="sidebarChat.ts"></script>
-        <script src="/socket.io/socket.io.js"></script>
+        <!-- <script src="/socket.io/socket.io.js"></script> -->
         <script type="module" src="client.ts"></script>
-        <script type="module" src="index.ts"></script>
     </body>
 </html>
