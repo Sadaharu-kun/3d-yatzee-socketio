@@ -5,11 +5,27 @@ addEventListener('DOMContentLoaded', async () => {
 
     if (!sidebarChatContainer) console.error('sidebarCharContainer finns inte');
 
-    sidebarChatContainer?.addEventListener('mouseenter', () => {
-        console.debug('🪳 mouseenter sidebar --> toggleSidebar()');
-        toggleSidebar(sidebarChatContainer);
-    });
+    const handleMouseEnter = () => expandSidebar(sidebarChatContainer);
+    const handleMouseLeave = () => collapseSidebar(sidebarChatContainer);
+
+    sidebarChatContainer.addEventListener('mouseenter', handleMouseEnter);
+    sidebarChatContainer.addEventListener('mouseleave', handleMouseLeave);
 });
+
+function expandSidebar(sidebarChatContainer: HTMLElement): void {
+    console.debug('🪳 expandSidebar()');
+
+    sidebarChatContainer.classList.remove('w-24');
+    sidebarChatContainer.classList.add('w-1/3');
+    sidebarChatContainer.classList.add('h-screen');
+}
+function collapseSidebar(sidebarChatContainer: HTMLElement): void {
+    console.debug('🪳 collapseSidebar()');
+
+    sidebarChatContainer.classList.add('w-24');
+    sidebarChatContainer.classList.remove('w-1/3');
+    sidebarChatContainer.classList.remove('h-screen');
+}
 
 function toggleSidebar(sidebarChatContainer: HTMLElement): void {
     console.debug('🪳 toggleSidebar()');

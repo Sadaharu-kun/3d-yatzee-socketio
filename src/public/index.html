@@ -12,12 +12,16 @@
         <link rel="stylesheet" href="./css/input.css" />
     </head>
     <body class="flex bg-slate-900">
-        <main class="flex-grow text-white" id="yatzee-game-container">
+        <main class="h-screen flex-grow bg-slate-800 text-white">
             <header>Yatzee Game</header>
+            <div id="yatzee-game-container"></div>
         </main>
 
         <!-- Chatt till sidan -->
-        <aside class="w-24 border-md rounded-md bg-slate-400 p-4" id="sidebar-chat-container">
+        <aside
+            class="border-md w-24 rounded-md bg-slate-400 p-4 transition-all delay-300 duration-150"
+            id="sidebar-chat-container"
+        >
             <header><h1>Chat</h1></header>
 
             <form id="message-form">

@@ -11,10 +11,10 @@ interface DiceResult {
 interface GameState {
     dice: number[];
     rolls: number;
-    scores: Partial<Record<Category, number>>;
+    scores: Partial<Record<DiceCombo, number>>;
     currentPlayer: string;
 }
-type DiceCombo =
+export type DiceCombo =
     | 'ones'
     | 'twos'
     | 'threes'
@@ -32,7 +32,7 @@ type DiceCombo =
 // Tuple
 type KeptDice = [boolean, boolean, boolean, boolean, boolean];
 
-class YatzeeGame {
+export class YatzeeGame {
     private state: GameState;
 
     constructor(player: string) {
@@ -45,11 +45,17 @@ class YatzeeGame {
     }
 
     rollDice(keptDice: KeptDice = [false, false, false, false, false]): number[] {
+        console.log('rollDice(keptDice) -->', keptDice);
+        console.debug('🪳 Inte implementerad än, returnerar statens dice av instansen');
+        // [ ] max 3 throws
 
+        // [ ] Increment rolls
+        return []
     }
 
     // Privat pga?
     private calculateScore(diceCombo: DiceCombo): number {
+        console.debug('🪳 calculateScore(diceCombo) -->', diceCombo);
         const dice = this.state.dice;
         const getSum = (a: number, b: number): number => a + b;
 
@@ -72,7 +78,7 @@ class YatzeeGame {
     }
 }
 
-class Player {
+/* class Player {
     name: string;
     scores: Record<string, number | null> = {};
 }
@@ -84,3 +90,4 @@ class YatzeeGame {
     keepDice: boolean[] = [false, false, false, false, false];
     rollsLeft: number = 3; // 3 maximala kast
 }
+ */
