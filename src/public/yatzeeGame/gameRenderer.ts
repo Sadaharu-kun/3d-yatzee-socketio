@@ -39,9 +39,12 @@ export class GameRender {
 
     private renderDice(dice: number[]): void {
         console.debug('🪳 renderDice(dice) -->', dice);
-        const diceContainer = this.container.querySelector('#dice-container');
-        /* diceContainer?.innerHTML = `
-            <div>${this.kept[i]}</div>
-        `; */
+        const diceContainer = this.container.querySelector('#dice-container') as HTMLElement;
+        if (!diceContainer) console.error('diceContainer hittas inte');
+        diceContainer.innerHTML = `
+            <div>${this.keptDice}</div>
+            <div>${dice}</div>
+            <div>⚀</div>
+        `;
     }
 }

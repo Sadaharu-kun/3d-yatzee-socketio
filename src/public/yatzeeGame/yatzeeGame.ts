@@ -84,8 +84,9 @@ export class YatzeeGame {
         this.state.dice = this.state.dice.map(() => Math.floor(Math.random() * 6) + 1);
     }
 
+    // [x] 1. Kolla frekvens av tärningsvärde
+    // [x] 2. Åtgärd beroende på fall
     getDiceCombo(newDiceArray: number[]): DiceCombo {
-        // Switch funkar bra för poäng, men när letar efter vilken typ är åtgärden olika
         console.debug('🪳 getDiceCombo() räkna ut vilken typ av kombinationstyp tärnngsarrayen är...');
         console.log('newDiceArray:', newDiceArray);
 
@@ -97,13 +98,50 @@ export class YatzeeGame {
         // Samma sak utan assertion. Är det bättre?
         newDiceArray.forEach((dieVal: number) => frequencyArr[dieVal - 1] ?? 0); // frequencyArr[dieVal - 1] = frequencyArr[dieval - 1] + 1
 
+        console.info('frequencyArr:', frequencyArr);
+
+        //? Hur hade map funkar här?
+
         // noUncheckedIndexedAccess: true --> Måste använda assertion.
         // Ska skydda om ett arrayindex är undefined vid runtime
         // Här är rätt att använda assertion ! för vet exakt input
         // Otydligare input är inte rekommenderat att använda assertion
 
-        console.error('return fake');
-        return 'ones';
+        // if fallthrough är konvention, och switch(true) är okonventionellt
+        // Ska egentligen jämföra explicita värden, men pga bool funkar exakt samma.
+        switch (true) {
+            case frequencyArr.includes(5):
+                return 'yatzee';
+            case frequencyArr.includes(4):
+                return 'fourOfAKind';
+            case frequencyArr.includes(3) && frequencyArr.includes(2):
+                return 'fullHouse';
+            case frequencyArr.includes(3):
+                return 'threeOfAKind';
+            case (() => {
+                console.debug('🪳 checking if is largeStraight');
+                // IIFE kan inte ha type annotations inne i case, pga måste returnera boolean genom switch(true)
+                const unique = [...new Set(newDiceArray)].sort((a, b) => a - b);
+                return [1, 2, 3, 4, 5].every(
+                    (n) => unique.includes(n) || [2, 3, 4, 5, 6].every((n) => unique.includes(n)),
+                );
+            })():
+                return 'largeStraight';
+            case (() => {
+                console.debug('🪳 checking if is smallStraight');
+                const unique = [...new Set(newDiceArray)].sort((a, b) => a - b);
+                const straights = [
+                    [1, 2, 3, 4],
+                    [2, 3, 4, 5],
+                    [3, 4, 5, 6],
+                ];
+                return straights.some((s) => s.every((n) => unique.includes(n)));
+            })():
+                return 'smallStraight';
+            default:
+                console.warn('CASE inget fall hittat, defaulting till "chance"...');
+                return 'chance';
+        }
     }
 
     // Privat pga?
@@ -113,21 +151,29 @@ export class YatzeeGame {
         const getSum = (a: number, b: number): number => a + b;
 
         switch (diceCombo) {
-            case 'largeStraight':
+            /* case 'largeStraight':
                 console.log('CASE largeStraight');
                 break;
             case 'smallStraight':
             case 'fullHouse':
             case 'fourOfAKind':
-            case 'threeOfAKind':
+            case 'threeOfAKind':  */
             case 'sixes':
+                return dice.filter((dieValue) => dieValue === 6).reduce((a, b) => a + b, 0);
             case 'fives':
+                return dice.filter((dieValue) => dieValue === 5).reduce((a, b) => a + b, 0);
             case 'fours':
+                return dice.filter((dieValue) => dieValue === 4).reduce((a, b) => a + b, 0);
             case 'threes':
+                return dice.filter((dieValue) => dieValue === 3).reduce((a, b) => a + b, 0);
             case 'twos':
+                return dice.filter((dieValue) => dieValue === 2).reduce((a, b) => a + b, 0);
             case 'ones':
+                return dice.filter((dieValue) => dieValue === 1).reduce((a, b) => a + b, 0);
+            case 'chance':
+                return dice.reduce((a, b) => a + b, 0);
             default:
-                console.error('Inget switch case för diceCombo');
+                console.error('Inget switch case för diceCombo. Returnerar 0 som falskt värde');
                 return 0;
         }
     }

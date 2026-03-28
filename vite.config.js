@@ -2,10 +2,13 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     root: 'src/public', // ← tell Vite where index.html is
+    optimizeDeps: {
+        include: ['three'], // för vite att hantera ThreeJS
+    },
     resove: {
         alias: {
-            'node:fs': false
-        }
+            'node:fs': false,
+        },
     },
     server: {
         port: 5173,
