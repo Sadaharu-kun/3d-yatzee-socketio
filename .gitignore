@@ -1,11 +1,12 @@
-# macOS files
-.DS_Store
-Thumbs.db
-desktop.ini
+# Node.js
+node_modules/
+npm-debug.log*
+**/*dist
 
-# Samsung files
-.nomedia
 
+# Local env files
+.env
+.env.local
 
 # Editor files
 .vscode/
@@ -13,14 +14,15 @@ desktop.ini
 *.swp
 *.swo
 
-# Node.js
-node_modules/
-npm-debug.log*
-
 # Python
 __pycache__/
 *.pyc
 
-# Local env files
-.env
-.env.local
+
+# macOS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Samsung files
+.nomedia
