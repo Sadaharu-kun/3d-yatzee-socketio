@@ -50,7 +50,8 @@ export class Dice3D {
     private currentRotationSpeed: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
 
     constructor(scene: THREE.Scene, position: THREE.Vector3, size: number = 1) {
-        const geometry = new THREE.BoxGeometry(size, size, size);
+        const geometry = new RoundedBoxGeometry(size, size, size, 4, 0.1);
+        // segments: 4, radius: 0.1
         /* const material = new THREE.MeshStandardMaterial({
             color: 0xff4444,
             roughness: 0.3,
@@ -64,23 +65,11 @@ export class Dice3D {
         this.setValue(1); // init with 1 as face
     }
     /* constructor(scene: THREE.Scene, position: THREE.Vector3, size: number = 1) {
-        const geometry = new THREE.BoxGeometry(size, size, size);
+        const geometry = new THREE.Roun(size, size, size);
         const material = new THREE.MeshStandardMaterial({ color: 0xff4444, roughness: 0.3 });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
         scene.add(this.mesh);
-    } */
-    /* setValue(value: number): void {
-        console.debug('🪳 setValue(value) -->', value);
-        this.value = Math.min(Math.max(value, 1), 6);
-        this.mesh.material = [
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(3) }),
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(4) }),
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(5) }),
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(2) }),
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(this.value) }),
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(1) }),
-        ];
     } */
     setValue(value: number): void {
         this.value = Math.min(Math.max(value, 1), 6);
@@ -99,56 +88,58 @@ export class Dice3D {
 
     private createFaceTexture(value: number): THREE.CanvasTexture {
         const canvas = document.createElement('canvas');
-        canvas.width = 128;
-        canvas.height = 128;
+        canvas.width = 512;
+        canvas.height = 512;
         const ctx = canvas.getContext('2d')!;
 
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 128, 128);
+        ctx.fillRect(0, 0, 512, 512);
 
         const dotPositions: Record<number, [number, number][]> = {
-            1: [[64, 64]],
+            1: [[256, 256]],
             2: [
-                [32, 32],
-                [96, 96],
+                [128, 128],
+                [384, 384],
             ],
             3: [
-                [32, 32],
-                [64, 64],
-                [96, 96],
+                [128, 128],
+                [256, 256],
+                [384, 384],
             ],
             4: [
-                [32, 32],
-                [96, 32],
-                [32, 96],
-                [96, 96],
+                [128, 128],
+                [384, 128],
+                [128, 384],
+                [384, 384],
             ],
             5: [
-                [32, 32],
-                [96, 32],
-                [64, 64],
-                [32, 96],
-                [96, 96],
+                [128, 128],
+                [384, 128],
+                [256, 256],
+                [128, 384],
+                [384, 384],
             ],
             6: [
-                [32, 32],
-                [96, 32],
-                [32, 64],
-                [96, 64],
-                [32, 96],
-                [96, 96],
+                [128, 128],
+                [384, 128],
+                [128, 256],
+                [384, 256],
+                [128, 384],
+                [384, 384],
             ],
         };
 
-        ctx.fillStyle = '#000000';
+        ctx.fillStyle = '#1a1a1a';
         const positions = dotPositions[value] ?? [];
         positions.forEach(([x, y]) => {
             ctx.beginPath();
-            ctx.arc(x, y, 10, 0, Math.PI * 2);
+            ctx.arc(x, y, 40, 0, Math.PI * 2);
             ctx.fill();
         });
 
-        return new THREE.CanvasTexture(canvas);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.anisotropy = 16;
+        return texture;
     }
 
     // Face rotations that show the correct face on top (+y)
@@ -162,6 +153,24 @@ export class Dice3D {
     };
 
     animateTo(value: number): void {
+        this.value = Math.min(Math.max(value, 1), 6);
+        this.isAnimating = true;
+
+        this.currentRotationSpeed.set(
+            0,
+            (Math.random() - 0.5) * 1.0, // only spin on Y axis
+            0,
+        );
+
+        // Target is always flat — only Y rotation varies (doesn't affect which face is on top)
+        this.targetRotation.set(0, Math.random() * Math.PI * 2, 0);
+
+        setTimeout(() => {
+            this.isAnimating = false;
+            this.updateMaterials();
+        }, 800);
+    }
+    /* animateTo(value: number): void {
         this.value = Math.min(Math.max(value, 1), 6);
         this.isAnimating = true;
 
@@ -180,7 +189,7 @@ export class Dice3D {
             this.isAnimating = false;
             this.updateMaterials();
         }, 800);
-    }
+    } */
     update(): void {
         if (this.isAnimating) {
             // Fast random spin
@@ -199,12 +208,12 @@ export class Dice3D {
 
     private updateMaterials(): void {
         this.mesh.material = [
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(3) }),
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(4) }),
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(this.value) }), // top
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(7 - this.value) }), // bottom
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(2) }),
-            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(5) }),
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(3) }), // +x
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(4) }), // -x
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(this.value) }), // +y TOP ← always correct
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(7 - this.value) }), // -y bottom
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(2) }), // +z
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(5) }), // -z
         ];
     }
 
