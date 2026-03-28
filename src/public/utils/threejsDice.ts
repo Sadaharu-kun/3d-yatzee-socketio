@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import RAPIER from '@dimforge/rapier3d-compat';
 
 // [ ] 1. Kasta tärningara (6-1)
 // [ ] 2. Ska landa beroende på:
@@ -60,7 +61,7 @@ export class Dice3D {
         // this.mesh = new THREE.Mesh(geometry, material);
         // this.mesh = new THREE.Mesh(geometry, material.clone()); // ← .clone()
         this.mesh = new THREE.Mesh(geometry, []); // empty materials, set in setValue
-        this.mesh.position.copy(position);
+        // this.mesh.position.copy(position); dont set initial position
         scene.add(this.mesh);
         this.setValue(1); // init with 1 as face
     }
@@ -229,6 +230,10 @@ export class ThreeScene {
     private renderer: THREE.WebGLRenderer;
     private dice: Dice3D[] = [];
     private diceValues: number[] = [1, 1, 1, 1, 1];
+    private world!: RAPIER.World;
+    private diceBodies: RAPIER.RigidBody[] = [];
+    private pendingValues: number[] = [];
+    private settled: boolean[] = [false, false, false, false, false];
 
     constructor(container: HTMLElement) {
         console.log('THREE constructor()...');
@@ -273,11 +278,91 @@ export class ThreeScene {
         // (lr, xy, view(xy))
         this.camera.lookAt(0, 0, 0);
 
+        this.initPhysics();
         this.animate();
         this.handleResize(container);
     }
+    private async initPhysics(): Promise<void> {
+        await RAPIER.init();
+        this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+
+        // Ground plane
+        const groundBody = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0));
+        this.world.createCollider(RAPIER.ColliderDesc.cuboid(10, 0.1, 10), groundBody);
+
+        // Create physics bodies for each die
+        for (let i = 0; i < 5; i++) {
+            const spacing = 1.2;
+            const startX = -2.4;
+            const x = startX + i * spacing;
+
+            const rigidBody = this.world.createRigidBody(
+                RAPIER.RigidBodyDesc.dynamic()
+                    .setTranslation(x, 6 + Math.random() * 3, 0) // drop from above
+                    .setRotation({ x: Math.random(), y: Math.random(), z: Math.random(), w: 1 }) // random rotation
+                    .setLinearDamping(0.3)
+                    .setAngularDamping(0.5),
+            );
+
+            this.world.createCollider(
+                RAPIER.ColliderDesc.cuboid(0.4, 0.4, 0.4)
+                    .setRestitution(0.3) // bounciness
+                    .setFriction(0.8),
+                rigidBody,
+            );
+
+            this.diceBodies.push(rigidBody);
+        }
+    }
 
     updateDiceValues(values: number[]): void {
+        this.pendingValues = [...values];
+        this.settled = [false, false, false, false, false];
+
+        // Reset dice to above and drop
+        this.diceBodies.forEach((body, i) => {
+            const spacing = 1.2;
+            const x = -2.4 + i * spacing;
+            body.setTranslation({ x, y: 6 + Math.random() * 3, z: 0 }, true);
+            body.setRotation({ x: Math.random(), y: Math.random(), z: Math.random(), w: 1 }, true);
+            body.setLinvel({ x: (Math.random() - 0.5) * 2, y: 0, z: 0 }, true);
+            body.setAngvel({ x: Math.random() * 10, y: Math.random() * 10, z: Math.random() * 10 }, true);
+        });
+    }
+
+    private animate(): void {
+        requestAnimationFrame(() => this.animate());
+
+        if (this.world) {
+            this.world.step();
+
+            this.diceBodies.forEach((body, i) => {
+                const pos = body.translation();
+                const rot = body.rotation();
+
+                // Sync Three.js mesh with physics body
+                this.dice[i]?.getMesh().position.set(pos.x, pos.y, pos.z);
+                this.dice[i]?.getMesh().quaternion.set(rot.x, rot.y, rot.z, rot.w);
+
+                // Check if settled (low velocity)
+                const vel = body.linvel();
+                const angVel = body.angvel();
+                const speed = Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2);
+                const angSpeed = Math.sqrt(angVel.x ** 2 + angVel.y ** 2 + angVel.z ** 2);
+
+                if (!this.settled[i] && speed < 0.1 && angSpeed < 0.1 && this.pendingValues.length > 0) {
+                    this.settled[i] = true;
+                    // Snap to correct face value once settled
+                    const val = this.pendingValues[i];
+                    if (val !== undefined) this.dice[i]?.setValue(val);
+                }
+            });
+        }
+
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    /*  updateDiceValues(values: number[]): void {
         const length = Math.min(this.dice.length, values.length);
         for (let i = 0; i < length; i++) {
             const val = values[i];
@@ -285,7 +370,7 @@ export class ThreeScene {
                 this.dice[i]?.animateTo(val); // ← animateTo instead of setValue
             }
         }
-    }
+    } */
 
     /* updateDiceValues(values: number[]): void {
         console.debug('🪳 updateDiceValues(values) -->', values);
@@ -304,31 +389,12 @@ export class ThreeScene {
         }
     } */
 
-    private animate(): void {
+    /* private animate(): void {
         requestAnimationFrame(() => this.animate());
         this.dice.forEach((die) => die.update()); // ← call update every frame
         this.renderer.render(this.scene, this.camera);
-    }
-
-    /* private animate(): void {
-        requestAnimationFrame(() => this.animate());
-        // Remove the rotation lines
-        this.renderer.render(this.scene, this.camera);
     } */
-    /*     private animate(): void {
-        requestAnimationFrame(() => this.animate());
 
-        // Slight rotation animation
-        this.dice.forEach((die) => {
-            if (die) {
-                die.getMesh().rotation.x += 0.01;
-                die.getMesh().rotation.y += 0.01;
-            }
-        });
-
-        this.renderer.render(this.scene, this.camera);
-    }
- */
     private handleResize(container: HTMLElement): void {
         window.addEventListener('resize', () => {
             const width = container.clientWidth;
