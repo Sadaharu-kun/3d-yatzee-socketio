@@ -47,13 +47,14 @@ addEventListener('DOMContentLoaded', () => {
     }
 
     initSidebarChat();
-    const gameRender = new GameRender(gameContainer, 'Spelare 1');
+    // Scene först, sen skicka till GameRender
     const threeScene = new ThreeScene(threeContainer);
+    const gameRender = new GameRender(gameContainer, 'Spelare 1', threeScene);
     initChat();
 
     console.log('initialised sidebar, chat, game and three');
-    console.log('gameRender:', gameRender);
     console.log('threeScene:', threeScene);
+    console.log('gameRender:', gameRender);
 });
 
 function initChat(): void {

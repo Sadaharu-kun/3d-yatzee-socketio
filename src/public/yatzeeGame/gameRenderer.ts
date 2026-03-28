@@ -1,16 +1,20 @@
 import type { KeptDice } from './yatzeeGame.ts';
-import { YatzeeGame } from './yatzeeGame.js';
+import { YatzeeGame } from './yatzeeGame.ts';
+import { ThreeScene } from '../utils/threejsDice.ts';
 
 // Rendera yatzee spelet i DOM
 export class GameRender {
     private yatzeeGame: YatzeeGame;
     private container: HTMLElement;
     private keptDice: KeptDice = [false, false, false, false, false];
+    private threeScene: ThreeScene | null = null;
 
-    constructor(container: HTMLElement, player: string) {
+    constructor(container: HTMLElement, player: string, threeScene?: ThreeScene) {
         console.debug('🪳 GameRender constructor()...');
+
         this.yatzeeGame = new YatzeeGame(player);
         this.container = container;
+        this.threeScene = threeScene || null;
         this.render();
     }
 
@@ -35,6 +39,12 @@ export class GameRender {
     private handleDiceRoll(): void {
         const dice = this.yatzeeGame.rollDice(this.keptDice);
         this.renderDice(dice);
+
+        // Update 3D dice
+        if (this.threeScene) {
+            console.info('Updating dice values...');
+            this.threeScene.updateDiceValues(dice);
+        }
     }
 
     private renderDice(dice: number[]): void {

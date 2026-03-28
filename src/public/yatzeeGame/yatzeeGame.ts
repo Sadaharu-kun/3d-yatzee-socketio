@@ -67,7 +67,7 @@ export class YatzeeGame {
             // Behåll nuvarande värde
             if (keptDice[i]) return die;
             return this.randomiseDie();
-            /* keptDice[i] ? die : this.randomiseDie() # annat sätt att skriva samma sak */
+            // keptDice[i] ? die : this.randomiseDie() # annat sätt att skriva samma sak
         });
 
         console.log('Minskar tärningskast till', --this.state.rollsLeft);
