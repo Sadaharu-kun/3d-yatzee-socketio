@@ -13,6 +13,7 @@ export class GameRender {
         console.debug('🪳 GameRender constructor()...');
 
         this.yatzeeGame = new YatzeeGame(player);
+        console.log(player, 'joined!');
         this.container = container;
         this.threeScene = threeScene || null;
         this.render();
@@ -21,8 +22,12 @@ export class GameRender {
     private render(): void {
         console.debug('🪳 render()');
         this.container.innerHTML = `
-        <div class="grid grid-cols-2 bg-purple-400">
+            <div>
+                <header><h3>Antal spelare: <span id="player-count">0</span></h3></header>
+                <ul class="m-4 px-2" id="player-list"></ul>
+            </div>
             <div id="roll-dice-btn" class="flex justify-center p-4 bg-blue-500 shadow-blue-900"><button>Kasta tärningar</button></div>
+            <div id="dice-container" class="flex bg-red-500"></div>
             <div id="score-container" class="bg-green-500">
                 <table>
                     <thead>
@@ -118,15 +123,9 @@ export class GameRender {
                             <td>Slutresultat</td>
                             <td>... summera med JavaScript</td>
                         </tr>
-                        <tr>
-                            <td>Resultat</td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
-
-            <div id="dice-container" class="flex bg-red-500"></div>
-        </div>
         `;
 
         this.container.querySelector('#roll-dice-btn')?.addEventListener('click', () => {
@@ -147,7 +146,8 @@ export class GameRender {
     }
 
     private renderDice(dice: number[]): void {
-        console.debug('🪳 renderDice(dice) -->', dice);
+        console.debug('🪳 renderDice(dice) -->', dice); // X
+
         const diceContainer = this.container.querySelector('#dice-container') as HTMLElement;
         if (!diceContainer) console.error('diceContainer hittas inte');
         diceContainer.innerHTML = `

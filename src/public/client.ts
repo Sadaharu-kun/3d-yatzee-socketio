@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client'; // Vite rpoxy
 import type { UserMessage } from '../types.js';
-import { initSidebarChat, toggleSidebar } from './utils/sidebarChat.ts';
+import { initSidebarChat } from './utils/sidebarChat.ts';
 import { GameRender } from './yatzeeGame/gameRenderer.ts';
 import { ThreeScene } from './utils/threejsDice.ts';
 // import type { Socket } from 'socket.io'; sen utan vite?
@@ -58,6 +58,7 @@ addEventListener('DOMContentLoaded', () => {
 });
 
 function initChat(): void {
+    console.debug('🪳 initChat()');
     // socket: Socket = io();
     socket = io(); // Har redan typ från toppen
 
@@ -67,11 +68,16 @@ function initChat(): void {
         console.debug('🪳 socket.on newChatMessage');
         console.info('msg:', msg); // Object
         addMessageToChat(msg);
-
-        messageForm.addEventListener('submit', handleSubmit);
-        userInput.addEventListener('keypress', handleEnterKey);
-        messageInput.addEventListener('keypress', handleEnterKey);
     });
+
+    socket.on('updatePlayers', (players: string[]) => {
+        console.debug('🪳 Uppkopplade spelare:', players);
+        showPlayers(players);
+    });
+
+    messageForm.addEventListener('submit', handleSubmit);
+    userInput.addEventListener('keypress', handleEnterKey);
+    messageInput.addEventListener('keypress', handleEnterKey);
 
     /* messageForm.addEventListener('submit', function (e) {
         console.log('In messageform');
@@ -97,9 +103,11 @@ function handleSubmit(e: Event) {
 
     if (username && message) {
         welcomeMessage.innerHTML = `<h3>Välkommen ${username}</h3>`;
+        userInput.disabled = true; // lås efter angivet namn
 
         const messageData: UserMessage = { username, message };
         socket.emit('chatMessage', messageData);
+
         console.debug('🪳 Tömmer meddelanderuta');
         messageInput.value = '';
     }
@@ -114,16 +122,32 @@ function handleEnterKey(e: KeyboardEvent) {
 }
 
 function addMessageToChat(msg: UserMessage) {
-    console.log('trying to  add message to chat...')
+    console.log('trying to  add message to chat...');
     if (!messageContainer) return console.error('messageContainer missing');
 
     const newMessageEl = document.createElement('li');
     newMessageEl.innerHTML = `
-            <div id="username">${msg.username}</div>
-            <div id="user-message">${msg.message}</div>
+            <div class="grid-grid-cols-2">
+                <div id="username">${msg.username}</div>
+                <div class="flex flex-shrink-0 border px-2 border-black rounded-md bg-blue-500" id="user-message">${msg.message}</div>
+            </div>
         `;
 
     messageContainer.appendChild(newMessageEl);
 }
 
-(window as any).toggleSidebar = toggleSidebar;
+// (window as any).toggleSidebar = toggleSidebar;
+
+function showPlayers(players: string[]) {
+    console.debug('🪳 showPlayers(players)');
+    const playerList = document.querySelector('#player-list') as HTMLElement;
+    const playerCount = document.querySelector('#player-count') as HTMLElement;
+
+    if (!playerList) console.error('playerList hittades inte');
+
+    console.log('Uppdaterar player list');
+    playerList.innerHTML = players.map((player) => `<li class="list-disc">${player}</li>`).join('');
+
+    console.log('Uppdaterar playerCount');
+    if (playerCount) playerCount.textContent = String(players.length);
+}

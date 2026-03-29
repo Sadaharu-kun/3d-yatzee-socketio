@@ -238,7 +238,6 @@ export class ThreeScene {
     constructor(container: HTMLElement) {
         console.log('THREE constructor()...');
 
-        // ✅ Ensure container exists
         if (!container) {
             throw new Error('Container element is required');
         }
@@ -282,9 +281,16 @@ export class ThreeScene {
         this.animate();
         this.handleResize(container);
     }
+
     private async initPhysics(): Promise<void> {
         await RAPIER.init();
+        // In initPhysics(), add side walls
         this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+        const wallL = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(-3.5, 2, 0));
+        this.world.createCollider(RAPIER.ColliderDesc.cuboid(0.1, 5, 2), wallL);
+
+        const wallR = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(3.5, 2, 0));
+        this.world.createCollider(RAPIER.ColliderDesc.cuboid(0.1, 5, 2), wallR);
 
         // Ground plane
         const groundBody = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0));
@@ -297,7 +303,8 @@ export class ThreeScene {
             const x = startX + i * spacing;
 
             const rigidBody = this.world.createRigidBody(
-                RAPIER.RigidBodyDesc.dynamic()
+                // RAPIER.RigidBodyDesc.dynamic()
+                RAPIER.RigidBodyDesc.fixed()
                     .setTranslation(x, 6 + Math.random() * 3, 0) // drop from above
                     .setRotation({ x: Math.random(), y: Math.random(), z: Math.random(), w: 1 }) // random rotation
                     .setLinearDamping(0.3)
@@ -315,7 +322,60 @@ export class ThreeScene {
         }
     }
 
+    getTopFace(rotation: RAPIER.Rotation): number {
+        console.debug('🪳 getTopFace()');
+        const q = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+
+        // The 6 face normals in local space
+        const faces = [
+            { value: 1, axis: new THREE.Vector3(0, 1, 0) }, // +Y top
+            { value: 6, axis: new THREE.Vector3(0, -1, 0) }, // -Y bottom
+            { value: 2, axis: new THREE.Vector3(1, 0, 0) }, // +X right
+            { value: 5, axis: new THREE.Vector3(-1, 0, 0) }, // -X left
+            { value: 3, axis: new THREE.Vector3(0, 0, 1) }, // +Z front
+            { value: 4, axis: new THREE.Vector3(0, 0, -1) }, // -Z back
+        ];
+
+        // Rotate each face normal by the dice's quaternion, find which points most upward
+        let topFace = 1;
+        let maxY = -Infinity;
+
+        faces.forEach(({ value, axis }) => {
+            const worldAxis = axis.clone().applyQuaternion(q);
+            if (worldAxis.y > maxY) {
+                maxY = worldAxis.y;
+                topFace = value;
+            }
+        });
+
+        console.debug('🪳 topFace:', topFace);
+        return topFace;
+    }
+
     updateDiceValues(values: number[]): void {
+        this.pendingValues = [...values];
+        this.settled = [false, false, false, false, false];
+
+        this.diceBodies.forEach((body, i) => {
+            const spacing = 1.2;
+            const x = -2.4 + i * spacing;
+
+            body.setBodyType(RAPIER.RigidBodyType.Dynamic, true); // ← wake up on roll
+            // In updateDiceValues() and initPhysics(), add Z offset
+            body.setTranslation(
+                {
+                    x: x + (Math.random() - 0.5) * 0.5, // small X jitter
+                    y: 6 + Math.random() * 3,
+                    z: (Math.random() - 0.5) * 2, // ← spread in Z
+                },
+                true,
+            )
+            body.setRotation({ x: Math.random(), y: Math.random(), z: Math.random(), w: 1 }, true);
+            body.setLinvel({ x: (Math.random() - 0.5) * 2, y: 0, z: 0 }, true);
+            body.setAngvel({ x: Math.random() * 10, y: Math.random() * 10, z: Math.random() * 10 }, true);
+        });
+    }
+    /* updateDiceValues(values: number[]): void {
         this.pendingValues = [...values];
         this.settled = [false, false, false, false, false];
 
@@ -328,7 +388,7 @@ export class ThreeScene {
             body.setLinvel({ x: (Math.random() - 0.5) * 2, y: 0, z: 0 }, true);
             body.setAngvel({ x: Math.random() * 10, y: Math.random() * 10, z: Math.random() * 10 }, true);
         });
-    }
+    } */
 
     private animate(): void {
         requestAnimationFrame(() => this.animate());
@@ -350,12 +410,18 @@ export class ThreeScene {
                 const speed = Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2);
                 const angSpeed = Math.sqrt(angVel.x ** 2 + angVel.y ** 2 + angVel.z ** 2);
 
-                if (!this.settled[i] && speed < 0.1 && angSpeed < 0.1 && this.pendingValues.length > 0) {
+                if (!this.settled[i] && speed < 0.1 && angSpeed < 0.1) {
+                    this.settled[i] = true;
+                    const topFace = this.getTopFace(body.rotation()); // ← read from physics
+                    this.dice[i]?.setValue(topFace);
+                    this.diceValues[i] = topFace; // store result
+                }
+                /* if (!this.settled[i] && speed < 0.1 && angSpeed < 0.1 && this.pendingValues.length > 0) {
                     this.settled[i] = true;
                     // Snap to correct face value once settled
                     const val = this.pendingValues[i];
                     if (val !== undefined) this.dice[i]?.setValue(val);
-                }
+                } */
             });
         }
 

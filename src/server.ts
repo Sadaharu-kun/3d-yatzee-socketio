@@ -65,13 +65,24 @@ app.get('/messages', async (req: Request, res: Response) => {
     }
 });
 
+const players = new Set<string>();
+
 // Måste använda socket som parameter
 io.on('connection', (socket: Socket) => {
     console.log(`A client with ID ${socket.id} connected to the chat!`);
 
     socket.on('chatMessage', (msg: UserMessage) => {
-        console.log('socket on chatMessage');
+        console.info('socket on chatMessage');
+
+        const { username } = msg;
+        players.add(username);
+
         io.emit('newChatMessage', msg);
+        io.emit('updatePlayers', [...players]);
+    });
+
+    socket.on('disconnect', () => {
+        // remove player?
     });
 });
 

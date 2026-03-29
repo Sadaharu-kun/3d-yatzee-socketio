@@ -11,48 +11,80 @@
         <!-- <link rel="stylesheet" href="css/output.css" /> -->
         <link rel="stylesheet" href="./css/input.css" />
     </head>
-    <body class="flex bg-slate-900">
-        <main class="w-full bg-amber-600 text-white">
-            <header><h1>Yatzee Game med Socket.IO</h1></header>
-            <div class="bg-yellow-500" id="yatzee-game-container"></div>
-            <div class="bg-orange-500" id="three-container"></div>
+    <body class="flex w-screen bg-slate-900">
+        <!-- flex-1 shrinks -->
+        <main class="m-4 h-full flex-1 rounded-md bg-amber-600 text-white">
+            <header class="relative flex items-center justify-center">
+                <h1 class="text-center">Yatzee Game med Socket.IO</h1>
+                <button class="absolute right-0" id="outside-chat-btn">Chat</button>
+            </header>
+
+            <div class="flex bg-red-700">
+                <div class="flex-1 bg-yellow-500" id="yatzee-game-container">
+                    <!--
+                roll-dice-btn
+                score-container
+                dice-container
+                --></div>
+                <div class="border-1 h-full w-full border-white bg-orange-500" id="three-container"></div>
+            </div>
         </main>
 
         <!-- Chatt till sidan -->
+        <!-- ? Ha som footer istället -->
+        <!-- w-24 -->
         <aside
-            class="border-md w-24 rounded-md bg-slate-400 p-4 transition-all delay-300 duration-150"
+            class="border-md my-4 p-2 rounded-l-md bg-slate-400 transition-all delay-300 duration-150"
             id="sidebar-chat-container"
         >
-            <header><h1>Chat</h1></header>
-
-            <form id="message-form">
-                <input type="text" id="user-input" placeholder="Skriv ditt namn..." autofocus />
-                <input type="text" id="message-input" placeholder="Skriv meddelande" />
-                <button class="rounded-full border border-black bg-blue-500" type="submit">
+            <div class="grid grid-cols-5 items-center">
+                <header class="col-span-4"><h1>Chat</h1></header>
+                <button class="size-fit border-black bg-red-500" id="chat-toggle">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
-                        stroke-width="1.5"
+                        stroke-width="1.8"
                         stroke="currentColor"
-                        class="m-2 size-8 rounded-full"
+                        class="size-6"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
-                        />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                     </svg>
                 </button>
-            </form>
-
-            <div id="welcome-message"></div>
+            </div>
 
             <h2>Chat meddelanden</h2>
-            <div class="bg-slate-300" id="message-container">
-                <div id="display-user">display user</div>
-                <div id="display-message">display message</div>
+            <div class="flex h-screen flex-col rounded-md p-4">
+                <div class="my-4 flex-1 rounded-md bg-gray-300 p-2" id="message-container">
+                    <div id="display-user">display user</div>
+                    <div id="display-message">display message</div>
+                </div>
+
+                <form class="flex gap-2" id="message-form">
+                    <div class="flex flex-col gap-2">
+                        <input type="text" id="user-input" placeholder="Skriv ditt namn..." autofocus />
+                        <input type="text" id="message-input" placeholder="Skriv meddelande" />
+                    </div>
+                    <button class="rounded-full border border-black bg-blue-500" type="submit">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor"
+                            class="m-2 size-8 rounded-full"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+                            />
+                        </svg>
+                    </button>
+                </form>
             </div>
+
+            <div id="welcome-message"></div>
         </aside>
 
         <!-- <script src="/socket.io/socket.io.js"></script> -->

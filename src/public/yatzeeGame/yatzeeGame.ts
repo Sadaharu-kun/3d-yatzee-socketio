@@ -36,6 +36,7 @@ export class YatzeeGame {
     private state: GameState;
 
     constructor(player: string) {
+        console.log('YatzeeGame constructor()...');
         this.state = {
             dice: [0, 0, 0, 0, 0],
             rollsLeft: 3,
@@ -45,6 +46,7 @@ export class YatzeeGame {
     }
 
     newTurn(): void {
+        console.debug('🪳 newTurn()');
         this.state.rollsLeft = 3; // Återställ kast
         this.state.dice = [0, 0, 0, 0, 0]; // Behövs tärningar ställas om?
     }
@@ -61,25 +63,30 @@ export class YatzeeGame {
         // [ ] Increment rolls
         // minska tärningskast
 
+        // Räknas efter kastas i 3D modellen
         // Välj hur ska kasta tärningarna
         // Slumpa tärningskasten
-        this.state.dice = this.state.dice.map((die, i) => {
+        /* this.state.dice = this.state.dice.map((die, i) => {
             // Behåll nuvarande värde
             if (keptDice[i]) return die;
-            return this.randomiseDie();
+            // return this.randomiseDie();
+
             // keptDice[i] ? die : this.randomiseDie() # annat sätt att skriva samma sak
-        });
+        }); */
 
         console.log('Minskar tärningskast till', --this.state.rollsLeft);
         return this.state.dice;
     }
 
-    randomiseDie(): number {
+    // Tärningsarray skapas från kastade 3d tärningar
+    /* randomiseDie(): number {
+        console.debug('🪳 randomDice()');
         // Random från 1-6
         return Math.floor(Math.random() * 6) + 1;
-    }
+    } */
 
     rollAll(): void {
+        console.debug('🪳 rollAll()');
         console.log('Vill rulla alla tärningar');
         this.state.dice = this.state.dice.map(() => Math.floor(Math.random() * 6) + 1);
     }
