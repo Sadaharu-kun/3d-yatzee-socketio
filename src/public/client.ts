@@ -114,6 +114,7 @@ function handleEnterKey(e: KeyboardEvent) {
 }
 
 function addMessageToChat(msg: UserMessage) {
+    console.log('trying to  add message to chat...')
     if (!messageContainer) return console.error('messageContainer missing');
 
     const newMessageEl = document.createElement('li');

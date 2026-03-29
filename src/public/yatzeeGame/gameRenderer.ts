@@ -21,12 +21,111 @@ export class GameRender {
     private render(): void {
         console.debug('🪳 render()');
         this.container.innerHTML = `
-        <div class="h-screen bg-purple-400">
-            <div id="dice-container" class="flex flex-grow bg-red-500">dice-container</div>
-            <div id="roll-dice-btn" class="flex justify-center p-4 bg-blue-500 shadow-blue-900">
-                <button>Kasta tärningar</button>
+        <div class="grid grid-cols-2 bg-purple-400">
+            <div id="roll-dice-btn" class="flex justify-center p-4 bg-blue-500 shadow-blue-900"><button>Kasta tärningar</button></div>
+            <div id="score-container" class="bg-green-500">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Övre Sektion</th>
+                            <td>Ränka Poäng</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                        </tr>
+                        <tr>
+                            <td>Två</td>
+                            <td>Addera bara ettor</td>
+                        </tr>
+                        <tr>
+                            <td>Tre</td>
+                            <td>Addera bara ihop tvåor</td>
+                        </tr>
+                        <tr>
+                            <td>Fyra</td>
+                            <td>Addera bara ihop fyror</td>
+                        </tr>
+                            <td>Fem</td>
+                            <td>Addera bara ihop femmor</td>
+                        <tr>
+                            <td>Sex</td>
+                            <td>Addera bara ihop sexor</td>
+                        </tr>
+                        <tr>
+                            <td>Totalt</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Bonus</td>
+                            <td>Om summan blir 63 eller över</td>
+                            <td>+ 35 poäng</td>
+                        </tr>
+                        <tr>
+                            <td>Resultat</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nedre Sektion</th>
+                            <td></td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>3 kombo</td>
+                            <td>Addera summan av alla tärningar</td>
+                            </tr>
+                        <tr>
+                            <td>4 kombo</td>
+                            <td>Addera summan av alla tärningar</td>
+                        </tr>
+                        <tr>
+                            <td>Full House</td>
+                            <td>+ 25 poäng</td>
+                        </tr>
+                            <td>Small Straight</td>
+                            <td>+ 30 poäng</td>
+                        <tr>
+                            <td>Large Straight</td>
+                            <td>+ 40 poäng</td>
+                        </tr>
+                        <tr>
+                            <td>Yatzee</td>
+                            <td>+ 50 poäng</td>
+                        </tr>
+                        <tr>
+                            <td>Chance</td>
+                            <td>Summera alla tärningar</td>
+                        </tr>
+                        <tr>
+                            <td>Yatzee Bonus</td>
+                            <td>checkbox för varje bonus</td>
+                            <td>poäng 100 * X</td>
+                        </tr>
+                        <tr>
+                            <td>Totalt Övre Sektion</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Totalt Nedre Sektion</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Slutresultat</td>
+                            <td>... summera med JavaScript</td>
+                        </tr>
+                        <tr>
+                            <td>Resultat</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            <div id="score-container" class="bg-green-500">score container</div>
+
+            <div id="dice-container" class="flex bg-red-500"></div>
         </div>
         `;
 
