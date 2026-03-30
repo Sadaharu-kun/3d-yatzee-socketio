@@ -1,65 +1,34 @@
 /*
     1. class YatzeeGame
 */
-interface PlayerState {
-    name: string;
-    scores: Partial<Record<DiceCombo, number>>;
-}
-
-interface DiceResult {
-    dice: number[];
-    score: number;
-    category: string;
-}
-
-interface GameState {
-    dice: number[];
-    rollsLeft: 3 | 2 | 1 | 0;
-    scores: Partial<Record<DiceCombo, number>>;
-    currentPlayer: string;
-}
-export type DiceCombo =
-    | 'ones'
-    | 'twos'
-    | 'threes'
-    | 'fours'
-    | 'fives'
-    | 'sixes'
-    | 'threeOfAKind'
-    | 'fourOfAKind'
-    | 'fullHouse'
-    | 'smallStraight'
-    | 'largeStraight'
-    | 'yatzee'
-    | 'chance';
-
-// Tuple
-export type KeptDice = [boolean, boolean, boolean, boolean, boolean];
+import type { PlayerState, DiceCombo, KeptDice, GameState } from '../../types.ts';
 
 export class YatzeeGame {
-    private state: GameState;
-    private players: PlayerState[] = [];
-    private currentPlayerIndex: number = 0;
-    private round: number = 1;
-    private maxRounds: number = 13;
+    private state: GameState; // #final-kept-dice-btn --> skickar slutliga resultatet/kombon med EMIT som sparas i MongoDB för att visas i slutet av spelet
+    private players: PlayerState[] = []; // name + score
+    private currentPlayerIndex: number = 0; // index för att iterera spelare
+    private round: number = 1; // från rond 1
+    private maxRounds: number = 13; // till rond 13
 
     constructor(player: string) {
         console.log('YatzeeGame constructor()...');
         this.state = {
-            dice: [0, 0, 0, 0, 0],
+            dice: [],
             rollsLeft: 3,
             scores: {},
             currentPlayer: player,
         };
     }
 
-    addPlayer(name: string): void {
-        console.log('addPlayer(name)', name);
-        this.players.push({ name, scores: {} });
+    //? players: PlayerState[]
+    addPlayer(playerName: string): void {
+        console.log('addPlayer(playerName)', playerName);
+        this.players.push({ playerName, scores: {} });
     }
 
     getCurrentPlayer(): PlayerState {
-        console.log('getCurrentPlayer()');
+        console.warn('getCurrentPlayer()');
+        console.warn('Kanske inte ska använda PlayerState här?');
         return this.players[this.currentPlayerIndex]!;
     }
 
@@ -68,10 +37,11 @@ export class YatzeeGame {
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
         if (this.currentPlayerIndex === 0) this.round++; // new round after all players go
         this.state.rollsLeft = 3; // Återställ kast
-        this.state.dice = [0, 0, 0, 0, 0]; // Behövs tärningar ställas om?
+        //!this.state.dice = [0, 0, 0, 0, 0]; // Behövs tärningar ställas om?
     }
 
     scoreCategory(combo: DiceCombo): void {
+        console.log('scoreCategory(combo)', combo);
         const player = this.getCurrentPlayer();
         if (player.scores[combo] !== undefined) {
             console.warn('Already scored this category!');
@@ -81,12 +51,30 @@ export class YatzeeGame {
         this.nextTurn();
     }
 
-    getScores(): PlayerState[] {
+    getScores(): GameState['scores'] {
+        console.debug('🪳 getScores()...');
+        return { ...this.state.scores };
+    }
+    /* getScores(): PlayerState[] {
         return this.players;
+    } */
+
+    getGameState(): GameState {
+        console.debug('🪳 getGameState()');
+        return { ...this.state };
     }
 
+    getDice(): GameState['dice'] {
+        console.debug('🪳 getDice()...');
+        return [...this.state.dice];
+    }
     getRound(): number {
         return this.round;
+    }
+
+    getRollsLeft(): GameState['rollsLeft'] {
+        console.log('getRollsLeft()');
+        return this.state.rollsLeft;
     }
 
     isGameOver(): boolean {
@@ -122,24 +110,6 @@ export class YatzeeGame {
         console.groupEnd();
         return this.state.dice;
     }
-    getRollsLeft(): number {
-        console.log('getRollsLeft()');
-        return this.state.rollsLeft;
-    }
-
-    // Tärningsarray skapas från kastade 3d tärningar
-    /* randomiseDie(): number {
-        console.debug('🪳 randomDice()');
-        // Random från 1-6
-        return Math.floor(Math.random() * 6) + 1;
-    } */
-
-    //! Ska inte randomisera!! Det görs med fysik
-    /* rollAll(): void {
-        console.debug('🪳 rollAll()');
-        console.log('Vill rulla alla tärningar');
-        this.state.dice = this.state.dice.map(() => Math.floor(Math.random() * 6) + 1);
-    } */
 
     setDiceFromPhysics(values: number[]): void {
         this.state.dice = [...values];

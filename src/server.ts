@@ -7,7 +7,7 @@ import express from 'express';
 // const express, { Request, Response} = require('express');
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
-import type { UserMessage } from './types.js';
+import type { UserMessage, PlayerState, GameState } from './types.ts';
 // const { Server } = require('socket.io');
 
 // MongoDB connection
@@ -79,6 +79,17 @@ io.on('connection', (socket: Socket) => {
 
         io.emit('newChatMessage', msg);
         io.emit('updatePlayers', [...players]);
+    });
+
+    socket.on('finalKeptDice', (gameState: GameState) => {
+        console.log('SOCKET in finalKeptDice...');
+
+        if (!gameState) console.error('Hittar inte gameState');
+        console.log('IO EMIT --> "newFinalKeptDice" --> gameState:', gameState);
+
+        // Listning i mitten med användare och poäng
+        io.emit('newFinalKeptDice', gameState);
+        // io.emit('displayFinalKeptDice', )
     });
 
     socket.on('disconnect', () => {

@@ -1,8 +1,10 @@
+import type { UserMessage, PlayerState, GameState } from '../types.js';
+
 import { io } from 'socket.io-client'; // Vite rpoxy
-import type { UserMessage } from '../types.js';
 import { initSidebarChat } from './utils/sidebarChat.ts';
 import { GameRender } from './yatzeeGame/gameRenderer.ts';
 import { ThreeScene } from './utils/threejsDice.ts';
+import { YatzeeGame } from './yatzeeGame/yatzeeGame.ts';
 // import type { Socket } from 'socket.io'; sen utan vite?
 
 // Best practice är att samla DOM element överst
@@ -12,6 +14,9 @@ let userInput: HTMLInputElement;
 let messageInput: HTMLInputElement;
 let welcomeMessage: HTMLElement;
 let messageContainer: HTMLElement;
+
+// Final dice
+let finalDiceBtn: HTMLButtonElement;
 
 // Har den redan egen typ?
 let username: string;
@@ -49,13 +54,64 @@ addEventListener('DOMContentLoaded', () => {
     initSidebarChat();
     // Scene först, sen skicka till GameRender
     const threeScene = new ThreeScene(threeContainer);
+
     const gameRender = new GameRender(gameContainer, 'Spelare 1', threeScene);
+    gameRender.setOnFinalDice((gameState: GameState) => {
+        console.debug('🪳 setOnFinalFide callback triggered');
+
+        const playerState: GameState = {
+            currentPlayer: gameState.currentPlayer,
+            dice: gameState.dice,
+            scores: gameState.scores,
+            rollsLeft: gameState.rollsLeft,
+        };
+        console.debug('🪳 playerState:', playerState);
+        console.warn('SOCKET EMIT --> playerState');
+        socket.emit('finalKeptDice', playerState);
+    });
+
     initChat();
+    // initFinalDiceSocket();
 
     console.log('initialised sidebar, chat, game and three');
     console.log('threeScene:', threeScene);
     console.log('gameRender:', gameRender);
 });
+
+/* function initFinalDiceSocket(): void {
+    console.log('initFinalDiceSocket()');
+
+    socket = io();
+
+    finalDiceBtn = document.querySelector('#final-kept-dice-btn') as HTMLButtonElement;
+    if (!finalDiceBtn) console.error('finalDiceBtn finns inte');
+    console.log('finalDiceBtn:', finalDiceBtn);
+
+    // finalDiceBtn.addEventListener('click', (e: MouseEvent) => handleFinalDice);
+    finalDiceBtn.addEventListener('click', handleFinalDice);
+} */
+
+/* function handleFinalDice(e: MouseEvent): void {
+    console.debug('🪳 CLICKED handleFinalDiceBtn'); */
+
+/* const messageData: UserMessage = { username, message };
+    socket.emit('chatMessage', messageData) */
+
+// const gameState = GameRender.getGameState()
+// const gameState: GameState = gameState.getGameState();
+/*  const playerState: PlayerState = {
+            player: gameState.currentPlayer,
+            dice: gameState.dice,
+            scores: gameState.scores,
+            rollsLeft: gameState.rollsLeft
+        } */
+/* const playerState: PlayerState = {
+        playerName: gameState.currentPlayer,
+        scores: gameState.scores,
+    };
+    console.debug('🪳 gameState:', gameState);
+    console.debug('🪳 playerState:', playerState); */
+// }
 
 function initChat(): void {
     console.debug('🪳 initChat()');
