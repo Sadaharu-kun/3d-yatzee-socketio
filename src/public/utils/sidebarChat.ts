@@ -43,6 +43,11 @@ export function toggleChat(e: MouseEvent) {
         sidebarContainer?.classList.remove('w-80');
         sidebarContainer?.classList.add('w-0', 'overflow-hidden');
     } */
+
+    // ← trigger resize so canvas fills new space
+    setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+    }, 300); // match your transition duration
 }
 /*
 export function expandSidebar(sidebarChatContainer: HTMLElement): void {

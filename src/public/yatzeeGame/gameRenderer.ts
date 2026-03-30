@@ -17,6 +17,12 @@ export class GameRender {
         this.container = container;
         this.threeScene = threeScene || null;
         this.render();
+
+        // Register callback, pass values to YatzeeGame
+        this.threeScene?.setOnDiceSettled((values) => {
+            this.yatzeeGame.setDiceFromPhysics(values); // update game state
+            this.renderDice(values); // update dom
+        });
     }
 
     private render(): void {
@@ -135,25 +141,31 @@ export class GameRender {
     }
 
     private handleDiceRoll(): void {
+        console.group(`handleDiceRoll()`);
+
+        console.debug('🪳 just decremet rollsLeft');
         const dice = this.yatzeeGame.rollDice(this.keptDice);
         this.renderDice(dice);
 
         // Update 3D dice
         if (this.threeScene) {
             console.info('Updating dice values...');
-            this.threeScene.updateDiceValues(dice);
+            console.warn('råkade tidigare skicka med fördefinierade värden');
+            //! this.threeScene.updateDiceValues(dice);
+            this.threeScene.updateDiceValues([]); // Physics sätter värden
         }
+        console.groupEnd();
     }
 
     private renderDice(dice: number[]): void {
         console.debug('🪳 renderDice(dice) -->', dice); // X
 
-        const diceContainer = this.container.querySelector('#dice-container') as HTMLElement;
+        /* const diceContainer = this.container.querySelector('#dice-container') as HTMLElement;
         if (!diceContainer) console.error('diceContainer hittas inte');
         diceContainer.innerHTML = `
             <div>${this.keptDice}</div>
             <div>${dice}</div>
             <div>⚀</div>
-        `;
+        `; */
     }
 }

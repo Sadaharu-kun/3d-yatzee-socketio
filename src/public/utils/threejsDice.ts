@@ -45,18 +45,21 @@ let boxGeometry = new THREE.BoxGeometry(1, 1, 1, params.segments, params.segment
 export class Dice3D {
     private mesh: THREE.Mesh;
     private value: number = 1;
+    private faceColor: string;
 
     private isAnimating: boolean = false;
     private targetRotation: THREE.Euler = new THREE.Euler(0, 0, 0);
     private currentRotationSpeed: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
 
-    constructor(scene: THREE.Scene, position: THREE.Vector3, size: number = 1) {
+    constructor(scene: THREE.Scene, position: THREE.Vector3, size: number = 1, color: string = '#ffffff') {
+        this.faceColor = color;
+
         const geometry = new RoundedBoxGeometry(size, size, size, 4, 0.1);
         // segments: 4, radius: 0.1
-        /* const material = new THREE.MeshStandardMaterial({
+        const material = new THREE.MeshStandardMaterial({
             color: 0xff4444,
             roughness: 0.3,
-        }); */
+        });
         // ← new material per instance, not shared
         // this.mesh = new THREE.Mesh(geometry, material);
         // this.mesh = new THREE.Mesh(geometry, material.clone()); // ← .clone()
@@ -73,18 +76,45 @@ export class Dice3D {
         scene.add(this.mesh);
     } */
     setValue(value: number): void {
+        console.group(`setValue(value)`, value);
+
         this.value = Math.min(Math.max(value, 1), 6);
-        this.mesh.material = [
+
+        /* this.mesh.material = [
             new THREE.MeshStandardMaterial({ map: this.createFaceTexture(3) }), // +x right
             new THREE.MeshStandardMaterial({ map: this.createFaceTexture(4) }), // -x left
             new THREE.MeshStandardMaterial({ map: this.createFaceTexture(this.value) }), // +y top ← show value on top
             new THREE.MeshStandardMaterial({ map: this.createFaceTexture(7 - this.value) }), // -y bottom (opposite = 7 - value)
             new THREE.MeshStandardMaterial({ map: this.createFaceTexture(2) }), // +z front
             new THREE.MeshStandardMaterial({ map: this.createFaceTexture(5) }), // -z back
+        ]; */
+        console.info('Standard dice layout');
+        // Standard dice layout — opposite faces sum to 7
+        this.mesh.material = [
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(3) }), // +x
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(4) }), // -x
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(1) }), // +y top
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(6) }), // -y bottom
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(2) }), // +z
+            new THREE.MeshStandardMaterial({ map: this.createFaceTexture(5) }), // -z
         ];
 
+        console.info('Rotate mesh to face correct side up');
+        const rotations: Record<number, [number, number, number]> = {
+            1: [0, 0, 0], // 1 already on +Y
+            2: [0, 0, Math.PI / 2], // rotate so 2(+z) → +Y
+            3: [-Math.PI / 2, 0, 0], // rotate so 3(+x) → +Y
+            4: [Math.PI / 2, 0, 0], // rotate so 4(-x) → +Y
+            5: [0, 0, -Math.PI / 2], // rotate so 5(-z) → +Y
+            6: [Math.PI, 0, 0], // rotate so 6(-y) → +Y
+        };
+
+        const [rx, ry, rz] = rotations[value] ?? [0, 0, 0];
+        this.mesh.rotation.set(rx, ry, rz);
+
         // Reset rotation so top face is visible
-        this.mesh.rotation.set(0, 0, 0);
+        //! this.mesh.rotation.set(0, 0, 0);
+        console.groupEnd();
     }
 
     private createFaceTexture(value: number): THREE.CanvasTexture {
@@ -93,7 +123,8 @@ export class Dice3D {
         canvas.height = 512;
         const ctx = canvas.getContext('2d')!;
 
-        ctx.fillStyle = '#ffffff';
+        // ctx.fillStyle = '#ffffff'; just white
+        ctx.fillStyle = this.faceColor;
         ctx.fillRect(0, 0, 512, 512);
 
         const dotPositions: Record<number, [number, number][]> = {
@@ -157,6 +188,7 @@ export class Dice3D {
         this.value = Math.min(Math.max(value, 1), 6);
         this.isAnimating = true;
 
+        console.warn('Snurrar på x-axel');
         this.currentRotationSpeed.set(
             0,
             (Math.random() - 0.5) * 1.0, // only spin on Y axis
@@ -234,8 +266,58 @@ export class ThreeScene {
     private diceBodies: RAPIER.RigidBody[] = [];
     private pendingValues: number[] = [];
     private settled: boolean[] = [false, false, false, false, false];
+    // Callback to GameRender
+    private onDiceSettled: ((values: number[]) => void) | null = null;
 
     constructor(container: HTMLElement) {
+        console.log('THREE constructor()...');
+        if (!container) {
+            throw new Error('Container element is required');
+        }
+
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x1e293b);
+
+        // Initialize camera with placeholder aspect ratio, corrected in requestAnimationFrame
+        this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        container.appendChild(this.renderer.domElement);
+
+        // Delay size init until after DOM layout is complete
+        requestAnimationFrame(() => {
+            const width = container.offsetWidth;
+            const height = container.offsetHeight;
+            this.camera.aspect = width / height;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(width, height);
+        });
+
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        this.scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(2, 5, 3);
+        this.scene.add(directionalLight);
+
+        // Create 5 dice in a row
+        const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff'];
+        const spacing = 1.2;
+        const startX = -2.4;
+        for (let i = 0; i < 5; i++) {
+            const position = new THREE.Vector3(startX + i * spacing, 0, 0);
+            const die = new Dice3D(this.scene, position, 0.8, colors[i]);
+            this.dice.push(die);
+        }
+
+        this.camera.position.set(0, 7, 6);
+        this.camera.lookAt(0, 0, 0);
+
+        this.initPhysics();
+        this.animate();
+        this.handleResize(container);
+    }
+    /* constructor(container: HTMLElement) {
         console.log('THREE constructor()...');
 
         if (!container) {
@@ -245,13 +327,17 @@ export class ThreeScene {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x1e293b);
 
-        const width = container.clientWidth || window.innerWidth;
+        // const width = container.clientWidth || window.innerWidth;
         const height = container.clientHeight || window.innerHeight;
+        // Annan kontroll över sizing
+        //! remove early size setting
+        // const width = container.offsetWidth || window.innerWidth;
+        // const height = container.offsetHeight || window.innerHeight;
 
-        this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        //? this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
 
-        this.renderer.setSize(width, height);
+        //? this.renderer.setSize(width, height);
         container.appendChild(this.renderer.domElement);
 
         // Add lighting
@@ -263,11 +349,12 @@ export class ThreeScene {
         this.scene.add(directionalLight);
 
         // Create 5 dice in a row
+        const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff'];
         const spacing = 1.2;
         const startX = -2.4;
         for (let i = 0; i < 5; i++) {
             const position = new THREE.Vector3(startX + i * spacing, 0, 0);
-            const die = new Dice3D(this.scene, position, 0.8);
+            const die = new Dice3D(this.scene, position, 0.8, colors[i]);
             this.dice.push(die);
         }
 
@@ -280,19 +367,29 @@ export class ThreeScene {
         this.initPhysics();
         this.animate();
         this.handleResize(container);
-    }
+    } */
 
     private async initPhysics(): Promise<void> {
         await RAPIER.init();
-        // In initPhysics(), add side walls
         this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+
+        // Left wall
         const wallL = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(-3.5, 2, 0));
-        this.world.createCollider(RAPIER.ColliderDesc.cuboid(0.1, 5, 2), wallL);
+        this.world.createCollider(RAPIER.ColliderDesc.cuboid(0.1, 10, 3), wallL);
 
+        // Right wall
         const wallR = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(3.5, 2, 0));
-        this.world.createCollider(RAPIER.ColliderDesc.cuboid(0.1, 5, 2), wallR);
+        this.world.createCollider(RAPIER.ColliderDesc.cuboid(0.1, 10, 3), wallR);
 
-        // Ground plane
+        // Front wall (toward camera)
+        const wallF = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 2, 2));
+        this.world.createCollider(RAPIER.ColliderDesc.cuboid(5, 10, 0.1), wallF);
+
+        // Back wall
+        const wallB = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 2, -2));
+        this.world.createCollider(RAPIER.ColliderDesc.cuboid(5, 10, 0.1), wallB);
+
+        // Ground
         const groundBody = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0));
         this.world.createCollider(RAPIER.ColliderDesc.cuboid(10, 0.1, 10), groundBody);
 
@@ -323,18 +420,20 @@ export class ThreeScene {
     }
 
     getTopFace(rotation: RAPIER.Rotation): number {
-        console.debug('🪳 getTopFace()');
+        console.group('🪳 getTopFace()');
         const q = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
 
         // The 6 face normals in local space
         const faces = [
-            { value: 1, axis: new THREE.Vector3(0, 1, 0) }, // +Y top
-            { value: 6, axis: new THREE.Vector3(0, -1, 0) }, // -Y bottom
-            { value: 2, axis: new THREE.Vector3(1, 0, 0) }, // +X right
-            { value: 5, axis: new THREE.Vector3(-1, 0, 0) }, // -X left
-            { value: 3, axis: new THREE.Vector3(0, 0, 1) }, // +Z front
-            { value: 4, axis: new THREE.Vector3(0, 0, -1) }, // -Z back
+            { value: 1, axis: new THREE.Vector3(0, 1, 0) }, // +Y top   = 1
+            { value: 6, axis: new THREE.Vector3(0, -1, 0) }, // -Y bottom = 6
+            { value: 2, axis: new THREE.Vector3(1, 0, 0) }, // +X right = 3
+            { value: 5, axis: new THREE.Vector3(-1, 0, 0) }, // -X left = 4
+            { value: 3, axis: new THREE.Vector3(0, 0, 1) }, // +Z front = 2
+            { value: 4, axis: new THREE.Vector3(0, 0, -1) }, // -Z back = 5
         ];
+
+        console.debug('🪳 faces:', faces);
 
         // Rotate each face normal by the dice's quaternion, find which points most upward
         let topFace = 1;
@@ -349,12 +448,38 @@ export class ThreeScene {
         });
 
         console.debug('🪳 topFace:', topFace);
+        console.groupEnd();
         return topFace;
     }
 
-    updateDiceValues(values: number[]): void {
+    updateDiceValues(_values: number[]): void {
+        console.group(`updateDiceValues()`);
+
+        this.settled = [false, false, false, false, false];
+        this.diceValues = [0, 0, 0, 0, 0];
+
+        this.diceBodies.forEach((body, i) => {
+            body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+            body.setTranslation(
+                {
+                    x: -2.4 + i * 1.2 + (Math.random() - 0.5) * 0.5,
+                    y: 6 + Math.random() * 3,
+                    z: (Math.random() - 0.5) * 2,
+                },
+                true,
+            );
+            body.setRotation({ x: Math.random(), y: Math.random(), z: Math.random(), w: 1 }, true);
+            body.setLinvel({ x: (Math.random() - 0.5) * 2, y: 0, z: 0 }, true);
+            body.setAngvel({ x: Math.random() * 10, y: Math.random() * 10, z: Math.random() * 10 }, true);
+        });
+
+        console.groupEnd();
+    }
+    /* updateDiceValues(values: number[]): void {
         this.pendingValues = [...values];
         this.settled = [false, false, false, false, false];
+        console.debug('🪳 Resetting so stale values dont leak through');
+        this.diceValues = [0, 0, 0, 0, 0];
 
         this.diceBodies.forEach((body, i) => {
             const spacing = 1.2;
@@ -369,12 +494,13 @@ export class ThreeScene {
                     z: (Math.random() - 0.5) * 2, // ← spread in Z
                 },
                 true,
-            )
+            );
             body.setRotation({ x: Math.random(), y: Math.random(), z: Math.random(), w: 1 }, true);
             body.setLinvel({ x: (Math.random() - 0.5) * 2, y: 0, z: 0 }, true);
             body.setAngvel({ x: Math.random() * 10, y: Math.random() * 10, z: Math.random() * 10 }, true);
         });
-    }
+    } */
+
     /* updateDiceValues(values: number[]): void {
         this.pendingValues = [...values];
         this.settled = [false, false, false, false, false];
@@ -389,6 +515,10 @@ export class ThreeScene {
             body.setAngvel({ x: Math.random() * 10, y: Math.random() * 10, z: Math.random() * 10 }, true);
         });
     } */
+
+    setOnDiceSettled(callback: (values: number[]) => void) {
+        this.onDiceSettled = callback;
+    }
 
     private animate(): void {
         requestAnimationFrame(() => this.animate());
@@ -410,12 +540,49 @@ export class ThreeScene {
                 const speed = Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2);
                 const angSpeed = Math.sqrt(angVel.x ** 2 + angVel.y ** 2 + angVel.z ** 2);
 
-                if (!this.settled[i] && speed < 0.1 && angSpeed < 0.1) {
+                if (
+                    !this.settled[i] &&
+                    body.bodyType() === RAPIER.RigidBodyType.Dynamic &&
+                    speed < 0.1 &&
+                    angSpeed < 0.1
+                ) {
                     this.settled[i] = true;
+
+                    const topFace = this.getTopFace(body.rotation());
+                    this.dice[i]?.setValue(topFace);
+                    this.diceValues[i] = topFace;
+
+                    const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff'];
+                    console.log(
+                        `%c Die index:${i} color:${colors[i]} → face:${topFace} | all values so far: [${this.diceValues}]`,
+                        `color: ${colors[i]}; font-weight: bold`,
+                    );
+
+                    if (this.settled.every(Boolean)) {
+                        console.log('🎲 Final values:', this.diceValues);
+                        this.onDiceSettled?.(this.diceValues);
+                    }
+                }
+                /* if (!this.settled[i] && speed < 0.1 && angSpeed < 0.1) {
+                    this.settled[i] = true;
+
                     const topFace = this.getTopFace(body.rotation()); // ← read from physics
                     this.dice[i]?.setValue(topFace);
                     this.diceValues[i] = topFace; // store result
-                }
+
+                    const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff'];
+                    console.debug(
+                        `%c Die ${i} (${colors[i]}) → face: ${topFace}`,
+                        `color: ${colors[i]}; font-weight: bold`,
+                    );
+
+                    // Trigger callback when all dice are set
+                    console.debug('🪳 triggering callback?...');
+                    if (this.settled.every(Boolean)) {
+                        console.debug('🪳 callback triggered!');
+                        this.onDiceSettled?.(this.diceValues);
+                    }
+                } */
                 /* if (!this.settled[i] && speed < 0.1 && angSpeed < 0.1 && this.pendingValues.length > 0) {
                     this.settled[i] = true;
                     // Snap to correct face value once settled
@@ -462,6 +629,21 @@ export class ThreeScene {
     } */
 
     private handleResize(container: HTMLElement): void {
+        const resize = () => {
+            const width = container.offsetWidth;
+            const height = container.offsetHeight;
+            if (width && height) {
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(width, height);
+            }
+        };
+
+        window.addEventListener('resize', resize);
+        resize(); // ← call immediately to set correct initial size
+    }
+
+    /* private handleResize(container: HTMLElement): void {
         window.addEventListener('resize', () => {
             const width = container.clientWidth;
             const height = container.clientHeight;
@@ -472,5 +654,5 @@ export class ThreeScene {
                 this.renderer.setSize(width, height);
             }
         });
-    }
+    } */
 }
