@@ -22,7 +22,17 @@ export class GameRender {
         this.threeScene?.setOnDiceSettled((values) => {
             this.yatzeeGame.setDiceFromPhysics(values); // update game state
             this.renderDice(values); // update dom
+            this.updateRollButton();
         });
+    }
+
+    private updateRollButton(): void {
+        const btn = this.container.querySelector('#roll-dice-btn button') as HTMLButtonElement;
+        const rollsLeft = this.yatzeeGame.getRollsLeft(); // ← add this getter to YatzeeGame
+        if (btn) {
+            btn.textContent = `Kasta tärningar (${rollsLeft} kast kvar)`;
+            btn.disabled = rollsLeft === 0;
+        }
     }
 
     private render(): void {
@@ -158,14 +168,34 @@ export class GameRender {
     }
 
     private renderDice(dice: number[]): void {
-        console.debug('🪳 renderDice(dice) -->', dice); // X
+        console.debug('🪳 renderDice(dice) -->', dice);
 
-        /* const diceContainer = this.container.querySelector('#dice-container') as HTMLElement;
-        if (!diceContainer) console.error('diceContainer hittas inte');
-        diceContainer.innerHTML = `
-            <div>${this.keptDice}</div>
-            <div>${dice}</div>
-            <div>⚀</div>
-        `; */
+        const diceContainer = this.container.querySelector('#dice-container') as HTMLElement;
+        if (!diceContainer) return console.error('diceContainer hittas inte');
+
+        const diceSymbols = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+        diceContainer.innerHTML = dice
+            .map(
+                (val, i) => `
+        <div
+            class="die cursor-pointer text-4xl p-2 rounded border-2 border-transparent transition-all select-none
+                   ${this.keptDice[i] ? 'border-yellow-400 bg-yellow-100 scale-110' : 'opacity-60'}"
+            data-index="${i}"
+        >
+            ${diceSymbols[val] ?? val}
+        </div>
+    `,
+            )
+            .join('');
+
+        // Add click listeners to each die
+        diceContainer.querySelectorAll('.die').forEach((el) => {
+            el.addEventListener('click', () => {
+                const index = Number((el as HTMLElement).dataset.index);
+                this.keptDice[index] = !this.keptDice[index]; // toggle kept
+                this.renderDice(dice); // re-render to show selection
+            });
+        });
     }
 }

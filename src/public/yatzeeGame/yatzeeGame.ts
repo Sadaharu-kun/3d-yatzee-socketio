@@ -1,6 +1,10 @@
 /*
     1. class YatzeeGame
 */
+interface PlayerState {
+    name: string;
+    scores: Partial<Record<DiceCombo, number>>;
+}
 
 interface DiceResult {
     dice: number[];
@@ -34,6 +38,10 @@ export type KeptDice = [boolean, boolean, boolean, boolean, boolean];
 
 export class YatzeeGame {
     private state: GameState;
+    private players: PlayerState[] = [];
+    private currentPlayerIndex: number = 0;
+    private round: number = 1;
+    private maxRounds: number = 13;
 
     constructor(player: string) {
         console.log('YatzeeGame constructor()...');
@@ -45,10 +53,44 @@ export class YatzeeGame {
         };
     }
 
-    newTurn(): void {
+    addPlayer(name: string): void {
+        console.log('addPlayer(name)', name);
+        this.players.push({ name, scores: {} });
+    }
+
+    getCurrentPlayer(): PlayerState {
+        console.log('getCurrentPlayer()');
+        return this.players[this.currentPlayerIndex]!;
+    }
+
+    nextTurn(): void {
         console.debug('🪳 newTurn()');
+        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+        if (this.currentPlayerIndex === 0) this.round++; // new round after all players go
         this.state.rollsLeft = 3; // Återställ kast
         this.state.dice = [0, 0, 0, 0, 0]; // Behövs tärningar ställas om?
+    }
+
+    scoreCategory(combo: DiceCombo): void {
+        const player = this.getCurrentPlayer();
+        if (player.scores[combo] !== undefined) {
+            console.warn('Already scored this category!');
+            return;
+        }
+        player.scores[combo] = this.calculateScore(combo);
+        this.nextTurn();
+    }
+
+    getScores(): PlayerState[] {
+        return this.players;
+    }
+
+    getRound(): number {
+        return this.round;
+    }
+
+    isGameOver(): boolean {
+        return this.round > this.maxRounds;
     }
 
     rollDice(keptDice: KeptDice = [false, false, false, false, false]): number[] {
@@ -79,6 +121,10 @@ export class YatzeeGame {
         console.log('Minskar tärningskast till', --this.state.rollsLeft);
         console.groupEnd();
         return this.state.dice;
+    }
+    getRollsLeft(): number {
+        console.log('getRollsLeft()');
+        return this.state.rollsLeft;
     }
 
     // Tärningsarray skapas från kastade 3d tärningar
