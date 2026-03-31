@@ -1,6 +1,9 @@
+// threejsDice.ts
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import RAPIER from '@dimforge/rapier3d-compat';
+
+import type { UnwantedDice } from '../../types.ts';
 
 // Individuella tärningar
 export class Dice3D {
@@ -428,7 +431,57 @@ export class ThreeScene {
         return topValue;
     } */
 
-    updateDiceValues(_values: number[]): void {
+    updateDiceValues(unwantedDice?: UnwantedDice): void {
+        console.group(`updateDiceValues() - Rullar tärning`);
+        console.debug('🪳 unwantedDice:', unwantedDice);
+
+        console.debug('🪳 nollställer state');
+        this.settled = [false, false, false, false, false];
+        this.diceValues = [0, 0, 0, 0, 0];
+
+        this.diceBodies.forEach((body, i) => {
+            // Set body type to dynamic
+            body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+
+            // If unwantedDice[i] is false or unwantedDice not provided, re-roll this die
+            // const shouldReRoll = !unwantedDice || !unwantedDice[i]; # motsats
+            // Kasta om när unwantedDice[i] är true
+            const shouldReRoll = !unwantedDice || unwantedDice[i];
+
+            if (shouldReRoll) {
+                console.debug(`🪳 Kastar om tärning --> ${i}`);
+                // Reset position with some random offset
+                body.setTranslation(
+                    {
+                        x: -2.4 + i * 1.2 + (Math.random() - 0.5) * 0.5,
+                        y: 6 + Math.random() * 3,
+                        z: (Math.random() - 0.5) * 2,
+                    },
+                    true,
+                );
+                // Add random rotation
+                body.setRotation({ x: Math.random(), y: Math.random(), z: Math.random(), w: 1 }, true);
+                // Add random linear velocity
+                body.setLinvel({ x: (Math.random() - 0.5) * 2, y: 0, z: 0 }, true);
+                // Add random angular velocity for spinning
+                body.setAngvel({ x: Math.random() * 10, y: Math.random() * 10, z: Math.random() * 10 }, true);
+            } else {
+                console.debug(`🪳 Keeping die ${i} in place`);
+                // Keep the die where it is - don't reset position or add forces
+                // Set very low velocity to ensure it stays settled
+                body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+                body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+                // Mark as already settled to avoid re-triggering callback
+                this.settled[i] = true;
+                // Get current top face value
+                const topFace = this.getTopFace(body.rotation());
+                this.diceValues[i] = topFace;
+            }
+        });
+
+        console.groupEnd();
+    }
+    /* updateDiceValues(_values: number[]): void {
         console.group(`updateDiceValues() - Rullar tärning`);
 
         console.debug('🪳 nollställer state');
@@ -451,7 +504,7 @@ export class ThreeScene {
         });
 
         console.groupEnd();
-    }
+    } */
 
     setOnDiceSettled(callback: (values: number[]) => void) {
         console.warn('🪳 setOnDiceSettled(callback)');

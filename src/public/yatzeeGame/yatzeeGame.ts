@@ -1,7 +1,8 @@
+// yatzeeGame.ts
 /*
     1. class YatzeeGame
 */
-import type { PlayerState, DiceCombo, KeptDice, GameState } from '../../types.ts';
+import type { PlayerState, DiceCombo, UnwantedDice, GameState } from '../../types.ts';
 
 export class YatzeeGame {
     private state: GameState; // #final-kept-dice-btn --> skickar slutliga resultatet/kombon med EMIT som sparas i MongoDB för att visas i slutet av spelet
@@ -17,6 +18,7 @@ export class YatzeeGame {
             rollsLeft: 3,
             scores: {},
             currentPlayer: player,
+            round: 0 //! om 0 är det fel
         };
     }
 
@@ -32,6 +34,20 @@ export class YatzeeGame {
         return this.players[this.currentPlayerIndex]!;
     }
 
+    public getAllPlayers(): PlayerState[] {
+        console.info('getAllPlayers()');
+        return [...this.players];
+    }
+
+    public getAllScores(): Record<string, Record<string, number>> {
+        console.info('getAllScores()');
+        const allScores: Record<string, Record<string, number>> = {};
+        this.players.forEach((player) => {
+            allScores[player.playerName] = { ...player.scores };
+        });
+        return allScores;
+    }
+
     nextTurn(): void {
         console.debug('🪳 newTurn()');
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
@@ -41,14 +57,32 @@ export class YatzeeGame {
     }
 
     scoreCategory(combo: DiceCombo): void {
-        console.log('scoreCategory(combo)', combo);
+        console.info('scoreCategory(combo) -->', combo);
+
         const player = this.getCurrentPlayer();
+        console.info('GOT player:', player);
+
         if (player.scores[combo] !== undefined) {
             console.warn('Already scored this category!');
             return;
         }
+
+        // Räkna poäng och spara
         player.scores[combo] = this.calculateScore(combo);
+
+        console.debug('🪳 nästa tur/spelare...');
         this.nextTurn();
+    }
+
+    public getScoreForCombo(combo: DiceCombo): number {
+        console.info('getScoreForCombo(combo) -->', combo);
+        return this.calculateScore(combo);
+    }
+
+    public isCategoryScored(combo: DiceCombo): boolean {
+        console.info('isCategoryScored(combo) -->', combo);
+        const player = this.getCurrentPlayer();
+        return player.scores[combo] !== undefined;
     }
 
     getScores(): GameState['scores'] {
@@ -78,40 +112,58 @@ export class YatzeeGame {
     }
 
     isGameOver(): boolean {
+        console.info('isGameOver()');
         return this.round > this.maxRounds;
     }
 
-    rollDice(keptDice: KeptDice = [false, false, false, false, false]): number[] {
-        console.group(`rollDice(keptDice)`, keptDice);
+    // rollDice(unwantedDice: UnwantedDice = [false, false, false, false, false]): number[] {
+    public rollDice(unwantedDice: UnwantedDice): number[] {
+        console.group(`rollDice(unwantedDice)`, unwantedDice);
 
-        console.log('rollDice(keptDice) -->', keptDice);
-        // console.debug('🪳 Inte implementerad än, returnerar statens dice av instansen');
+        try {
+            // Check if there are rolls left
+            if (this.state.rollsLeft === 0) {
+                console.warn('No rolls left! Cannot roll again.');
+                return this.state.dice;
+            }
+            console.debug(`Du har ${this.state.rollsLeft} kvar`);
 
-        console.log('this.state.rolls:', this.state.rollsLeft);
-        console.log('this.state.rolls:', keptDice);
+            // Kolla att dice array finns
+            if (!this.state.dice || this.state.dice.length === 0) {
+                this.state.dice = [0, 0, 0, 0, 0];
+            }
 
-        // [ ] max 3 throws
-        if (this.state.rollsLeft === 0) throw new Error('Slut på tärningskast!');
-        // [ ] Increment rolls
-        // minska tärningskast
+            // Kopia av nuvarande tärning
+            const newDice = [...this.state.dice];
+            console.debug('🪳 newDice:', newDice);
 
-        // Räknas efter kastas i 3D modellen
-        // Välj hur ska kasta tärningarna
-        // Slumpa tärningskasten
-        /* this.state.dice = this.state.dice.map((die, i) => {
-            // Behåll nuvarande värde
-            if (keptDice[i]) return die;
-            // return this.randomiseDie();
+            // Kasta tärningar som inte ville behålla
+            for (let i = 0; i < newDice.length; i++) {
+                if (!unwantedDice[i]) {
+                    // Rulla om tärningen (value between 1-6)
+                    console.warn('Borde jag använda Math.random om sätts med Fysiken?');
+                    newDice[i] = Math.floor(Math.random() * 6) + 1;
+                }
+            }
 
-            // keptDice[i] ? die : this.randomiseDie() # annat sätt att skriva samma sak
-        }); */
+            // Update state
+            this.state.dice = newDice;
+            this.state.rollsLeft--;
 
-        console.log('Minskar tärningskast till', --this.state.rollsLeft);
-        console.groupEnd();
-        return this.state.dice;
+            console.debug('🪳 Nya tärningsvärden:', this.state.dice);
+            console.debug('🪳 Kvarstående kast:', this.state.rollsLeft);
+
+            return this.state.dice;
+        } catch (error) {
+            console.error('Error in rollDice:', error);
+            return this.state.dice;
+        } finally {
+            console.groupEnd();
+        }
     }
 
     setDiceFromPhysics(values: number[]): void {
+        console.info('setDiceFromPhysics(values) -->', values);
         this.state.dice = [...values];
         console.info('Dice set from physics:', this.state.dice);
     }
@@ -221,17 +273,3 @@ export class YatzeeGame {
         }
     }
 }
-
-/* class Player {
-    name: string;
-    scores: Record<string, number | null> = {};
-}
-
-class YatzeeGame {
-    players: Player[] = [];
-    currentPlayerIndex: number = 0;
-    dice: number[] = [0, 0, 0, 0, 0]; // 5 tärningar
-    keepDice: boolean[] = [false, false, false, false, false];
-    rollsLeft: number = 3; // 3 maximala kast
-}
- */

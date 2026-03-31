@@ -1,11 +1,18 @@
-import type { UserMessage, PlayerState, GameState } from '../types.js';
+import type { UserMessage, PlayerState, GameState, FinalGameState, FinalGameResults } from '../types.js';
 
 import { io } from 'socket.io-client'; // Vite rpoxy
 import { initSidebarChat } from './utils/sidebarChat.ts';
 import { GameRender } from './yatzeeGame/gameRenderer.ts';
 import { ThreeScene } from './utils/threejsDice.ts';
-import { YatzeeGame } from './yatzeeGame/yatzeeGame.ts';
+import { ScoreTable } from './utils/scoreTable.ts';
+import { lightingContext } from 'three/src/nodes/lighting/LightingContextNode.js';
 // import type { Socket } from 'socket.io'; sen utan vite?
+
+let gameRender: GameRender | null = null;
+let threeScene: ThreeScene | null = null; //! hanteras i klassen
+let scoreTable: ScoreTable | null = null; // Hanteras i ScoreTable
+let pendingPlayers: string[] | null = null;
+let pendingCurrentPlayer: string | null = null;
 
 // Best practice är att samla DOM element överst
 let socket: ReturnType<typeof io>;
@@ -14,6 +21,10 @@ let userInput: HTMLInputElement;
 let messageInput: HTMLInputElement;
 let welcomeMessage: HTMLElement;
 let messageContainer: HTMLElement;
+
+let gameContainer: HTMLElement;
+//! let threeContainer: HTMLElement; finns i klassen
+let sidebarChatContainer: HTMLElement;
 
 // Final dice
 let finalDiceBtn: HTMLButtonElement;
@@ -28,9 +39,8 @@ let message: string;
 addEventListener('DOMContentLoaded', () => {
     //? När letar ska vara i eventlistener?
     // 1. Containers
-    const gameContainer = document.querySelector('#yatzee-game-container') as HTMLElement;
-    const sidebarChatContainer = document.querySelector('#sidebar-chat-container') as HTMLElement;
-    const threeContainer = document.querySelector('#three-container') as HTMLElement;
+    gameContainer = document.querySelector('#yatzee-game-container') as HTMLElement;
+    sidebarChatContainer = document.querySelector('#sidebar-chat-container') as HTMLElement;
 
     // 2. Chat
     messageForm = document.querySelector('#message-form') as HTMLFormElement;
@@ -40,8 +50,8 @@ addEventListener('DOMContentLoaded', () => {
     messageContainer = document.querySelector('#message-container') as HTMLElement;
 
     // Container validation
-    if (!gameContainer || !sidebarChatContainer || !threeContainer) {
-        console.error('game, sidebar eller three container saknas');
+    if (!gameContainer || !sidebarChatContainer) {
+        console.error('gameContainer eller sidebarChatContainer saknas');
         return; // När ha return och inte? --> return stoppar koden om error
     }
 
@@ -51,67 +61,24 @@ addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    try {
+        scoreTable = new ScoreTable();
+        console.info('ScoreTable är initierat');
+    } catch (error) {
+        console.error('Lyckades inte initiera ScoreTable.', error);
+    }
+
     initSidebarChat();
+
     // Scene först, sen skicka till GameRender
-    const threeScene = new ThreeScene(threeContainer);
+    //! threeScene = new ThreeScene(threeContainer);
+    // Sker i klassen
 
-    const gameRender = new GameRender(gameContainer, 'Spelare 1', threeScene);
-    gameRender.setOnFinalDice((gameState: GameState) => {
-        console.debug('🪳 setOnFinalFide callback triggered');
-
-        const playerState: GameState = {
-            currentPlayer: gameState.currentPlayer,
-            dice: gameState.dice,
-            scores: gameState.scores,
-            rollsLeft: gameState.rollsLeft,
-        };
-        console.debug('🪳 playerState:', playerState);
-        console.warn('SOCKET EMIT --> playerState');
-        socket.emit('finalKeptDice', playerState);
-    });
-
+    // Skapa inte spel innan användarnamnet angetts
     initChat();
-    // initFinalDiceSocket();
 
-    console.log('initialised sidebar, chat, game and three');
-    console.log('threeScene:', threeScene);
-    console.log('gameRender:', gameRender);
+    console.log('initialised sidebar, chat');
 });
-
-/* function initFinalDiceSocket(): void {
-    console.log('initFinalDiceSocket()');
-
-    socket = io();
-
-    finalDiceBtn = document.querySelector('#final-kept-dice-btn') as HTMLButtonElement;
-    if (!finalDiceBtn) console.error('finalDiceBtn finns inte');
-    console.log('finalDiceBtn:', finalDiceBtn);
-
-    // finalDiceBtn.addEventListener('click', (e: MouseEvent) => handleFinalDice);
-    finalDiceBtn.addEventListener('click', handleFinalDice);
-} */
-
-/* function handleFinalDice(e: MouseEvent): void {
-    console.debug('🪳 CLICKED handleFinalDiceBtn'); */
-
-/* const messageData: UserMessage = { username, message };
-    socket.emit('chatMessage', messageData) */
-
-// const gameState = GameRender.getGameState()
-// const gameState: GameState = gameState.getGameState();
-/*  const playerState: PlayerState = {
-            player: gameState.currentPlayer,
-            dice: gameState.dice,
-            scores: gameState.scores,
-            rollsLeft: gameState.rollsLeft
-        } */
-/* const playerState: PlayerState = {
-        playerName: gameState.currentPlayer,
-        scores: gameState.scores,
-    };
-    console.debug('🪳 gameState:', gameState);
-    console.debug('🪳 playerState:', playerState); */
-// }
 
 function initChat(): void {
     console.debug('🪳 initChat()');
@@ -126,14 +93,53 @@ function initChat(): void {
         addMessageToChat(msg);
     });
 
-    socket.on('updatePlayers', (players: string[]) => {
+    /* socket.on('updatePlayers', (players: string[]) => {
         console.debug('🪳 Uppkopplade spelare:', players);
         showPlayers(players);
+
+        // Om finns, updatera spelare
+        if (gameRender) {
+            gameRender.updatePlayerList(players);
+        }
+    }); */
+
+    socket.on('updatePlayers', (players: string[]) => {
+        console.debug('🪳 Uppkopplade spelare:', players);
+
+        // Store current player if we have one
+        const currentPlayer = userInput.value.trim();
+
+        // Show players - this will handle both cases
+        showPlayers(players, currentPlayer);
     });
 
+    //! NY
+    socket.on('updateScore', (data: { player: string; category: string; score: number }) => {
+        console.debug('🪳 Fick nya poäng från en annan spelare -->', data);
+
+        // Uppdatera poändtabellen för ALLA spelare
+        if (!scoreTable) console.error('Hittar inte scoreTable');
+        // scoreTable?.updateScore(data.player, data.category, data.score)
+        // Destrukturera innan utan att ange data?
+        scoreTable?.updateScore(data.player, data.category, data.score);
+
+        //? skicka meddelande om poäng i chatten?
+    });
+
+    // Lyssna bara efter submit
     messageForm.addEventListener('submit', handleSubmit);
-    userInput.addEventListener('keypress', handleEnterKey);
-    messageInput.addEventListener('keypress', handleEnterKey);
+
+    // Enter submittar inte
+    messageInput.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // Prevent new line
+            e.stopPropagation(); // Stop event from bubbling
+            messageForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }
+    });
+
+    //userInput.addEventListener('keypress', handleEnterKey);
+    //messageInput.addEventListener('keypress', handleEnterKey);
 
     /* messageForm.addEventListener('submit', function (e) {
         console.log('In messageform');
@@ -148,32 +154,90 @@ function initChat(): void {
         });
     }); */
 }
-
+// client.ts
 function handleSubmit(e: Event) {
     e.preventDefault();
 
-    const username = userInput.value.trim() || 'Namn saknas';
-    const message = messageInput.value.trim() || 'Meddelande saknas';
-    // username = userInput.value.trim().length > 0 ? userInput.value.trim() : 'Namn saknas';
-    // message = messageInput.value.trim().length > 0 ? messageInput.value.trim() : 'Meddelande saknas';
+    const username = userInput.value.trim();
+    const message = messageInput.value.trim();
+
+    if (!username) return;
 
     if (username && message) {
-        welcomeMessage.innerHTML = `<h3>Välkommen ${username}</h3>`;
-        userInput.disabled = true; // lås efter angivet namn
+        if (!welcomeMessage.innerHTML) {
+            welcomeMessage.innerHTML = `<h3>Välkommen ${username}</h3>`;
+            userInput.disabled = true;
+        }
+
+        // Skapa spel när har användarnamn
+        if (!gameRender && gameContainer) {
+            console.debug('🪳 Skapar GameRender för spelare:', username);
+
+            // Don't create ThreeScene here - GameRender will create it internally
+            gameRender = new GameRender(gameContainer, username); // Remove threeScene parameter
+            console.debug('GameRender skapad');
+
+            // 1. Updatera poängtabell (varje runda)
+            gameRender.setOnScoreUpdate((player: string, category: string, score: number) => {
+                console.info('GameRender setOnScoreUpdate(player, category, score)');
+                console.debug('🪳 Uppdatera lokal poängtabell');
+                updatePlayerScore(player, category, score);
+
+                console.debug('🪳 EMIT individuell runda till server för de andra spelarna');
+                const roundScoreEvent: {
+                    player: string;
+                    category: string;
+                    score: number;
+                    round: number;
+                } = {
+                    player: player,
+                    category: category,
+                    score: score,
+                    round: gameRender?.getGameState().round || 1,
+                };
+
+                console.info('EMIT --"updateScore"--> roundScoreEvent:', roundScoreEvent);
+                socket.emit('updateScore', roundScoreEvent);
+            });
+
+            // 2. Final Dice --> (varje runda)
+            gameRender.setOnFinalDice((gameState: GameState) => {
+                console.debug('🪳 setOnFinalDice callback triggered');
+
+                // Är vanlig runda, inte game over
+                const turnResult: GameState = {
+                    currentPlayer: gameState.currentPlayer,
+                    dice: gameState.dice,
+                    scores: gameState.scores,
+                    rollsLeft: gameState.rollsLeft,
+                    round: gameState.round,
+                };
+
+                console.debug('🪳 Sending turn result to server:', turnResult);
+                socket.emit('turnResult', turnResult);
+            });
+
+            // 3. Final dice callback (VID SPELETS SLUT)
+            gameRender.setOnGameComplete((finalResults: FinalGameResults) => {
+                console.debug('🪳 CALLBACK spel är färdigt');
+                console.debug('🪳 Skickar spelets slutresultat till servern:', finalResults);
+                socket.emit('finalGameResults', finalResults);
+            });
+
+            // Lägg till pending players
+            if (pendingPlayers) {
+                console.debug('🪳 Lägg till pending players:', pendingPlayers);
+                gameRender.updatePlayerList(pendingPlayers, pendingCurrentPlayer || username);
+                pendingPlayers = null;
+                pendingCurrentPlayer = null;
+            } else {
+                gameRender.updatePlayerList([username], username);
+            }
+        }
 
         const messageData: UserMessage = { username, message };
         socket.emit('chatMessage', messageData);
-
-        console.debug('🪳 Tömmer meddelanderuta');
         messageInput.value = '';
-    }
-}
-
-function handleEnterKey(e: KeyboardEvent) {
-    console.debug('🪳 handleEnterKey()...');
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        messageForm.dispatchEvent(new Event('submit', { bubbles: true }));
     }
 }
 
@@ -192,18 +256,34 @@ function addMessageToChat(msg: UserMessage) {
     messageContainer.appendChild(newMessageEl);
 }
 
+// Varför behövdes inte denna längre?
 // (window as any).toggleSidebar = toggleSidebar;
 
-function showPlayers(players: string[]) {
-    console.debug('🪳 showPlayers(players)');
-    const playerList = document.querySelector('#player-list') as HTMLElement;
-    const playerCount = document.querySelector('#player-count') as HTMLElement;
+function showPlayers(players: string[], currentPlayer?: string) {
+    console.debug('🪳 showPlayers(players)', players);
 
-    if (!playerList) console.error('playerList hittades inte');
+    //====== GameRender ======
+    // Uppdatera spellistan i GameRender klassen om den finns
+    if (gameRender) {
+        console.info('Updatera spellistan i GameRender klassen om den finns');
+        gameRender.updatePlayerList(players, currentPlayer);
+    } else {
+        console.debug('GameRender är inte initierad än, sparar spelarlistan för senare');
+        pendingPlayers = players;
+        pendingCurrentPlayer = currentPlayer || null;
+    }
 
-    console.log('Uppdaterar player list');
-    playerList.innerHTML = players.map((player) => `<li class="list-disc">${player}</li>`).join('');
+    //====== ScoreTable ======
+    // Uppdatera poängtabellen
+    if (!scoreTable) {
+        console.error('Hittar inte scoreTable');
+    }
+    scoreTable?.updatePlayers(players);
+}
 
-    console.log('Uppdaterar playerCount');
-    if (playerCount) playerCount.textContent = String(players.length);
+function updatePlayerScore(player: string, category: string, score: number) {
+    console.info('updatePlayerScore(player, category, score)');
+    if (scoreTable) {
+        scoreTable.updateScore(player, category, score);
+    }
 }

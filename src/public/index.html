@@ -11,16 +11,133 @@
         <!-- <link rel="stylesheet" href="css/output.css" /> -->
         <link rel="stylesheet" href="./css/input.css" />
     </head>
-    <body class="flex w-screen bg-slate-900">
+    <body class="flex bg-slate-900">
+        <!--
+            MAIN: takes up all space when ASIDE is hidden
+            ASIDE: w-max-64 (collapses completely when hidden)
+         -->
+
         <!-- flex-1 shrinks -->
-        <main class="m-4 flex h-screen flex-1 flex-col rounded-md bg-amber-600 text-white">
+        <main class="m-2 flex h-screen flex-1 flex-col rounded-md bg-blue-500 text-white">
             <header class="relative flex flex-shrink-0 items-center justify-center">
                 <h1 class="text-center">Yatzee Game med Socket.IO</h1>
-                <button class="absolute right-0" id="outside-chat-btn">Chat</button>
+                <button class="absolute right-0 bg-violet-500" id="outside-chat-btn">Chat</button>
             </header>
-            <div class="flex min-h-0 flex-1 bg-red-700">
-                <div class="w-64 flex-shrink-0 bg-yellow-500" id="yatzee-game-container"></div>
-                <div class="flex-1 bg-orange-500" id="three-container"></div>
+            <!-- <div class="flex min-h-0 flex-1 bg-red-700"> -->
+
+            <div class="flex min-h-0 flex-1 flex-col bg-blue-800">
+                <!-- Top section: Game container and Three.js canvas -->
+                <!-- [ ] Måste ta upp h-full -->
+                <div class="flex h-full flex-1 gap-2 p-2">
+                    <!-- Har även three-container innuti klassen för isolering -->
+                    <div class="min-h-0 flex-1" id="yatzee-game-container"></div>
+                </div>
+
+                <!-- Bottom section: Score container -->
+                <div class="max-h-[50%] flex-shrink-0 overflow-auto bg-green-500" id="score-container">
+                    <table class="w-full">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th>Spelare</th>
+                            </tr>
+                            <tr id="player-names">
+                                <th>Övre Sektion</th>
+                                <th>Räkna Poäng</th>
+                                <th>Räkna Poäng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr></tr>
+                            <tr>
+                                <td>Två</td>
+                                <td>Addera bara ettor</td>
+                            </tr>
+                            <tr>
+                                <td>Tre</td>
+                                <td>Addera bara ihop tvåor</td>
+                            </tr>
+                            <tr>
+                                <td>Fyra</td>
+                                <td>Addera bara ihop fyror</td>
+                            </tr>
+                            <td>Fem</td>
+                            <td>Addera bara ihop femmor</td>
+                            <tr>
+                                <td>Sex</td>
+                                <td>Addera bara ihop sexor</td>
+                            </tr>
+                            <tr>
+                                <td>Totalt</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Bonus</td>
+                                <td>Om summan blir 63 eller över</td>
+                                <td>+ 35 poäng</td>
+                            </tr>
+                            <tr>
+                                <td>Resultat</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nedre Sektion</th>
+                                <td></td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>3 kombo</td>
+                                <td>Addera summan av alla tärningar</td>
+                            </tr>
+                            <tr>
+                                <td>4 kombo</td>
+                                <td>Addera summan av alla tärningar</td>
+                            </tr>
+                            <tr>
+                                <td>Full House</td>
+                                <td>+ 25 poäng</td>
+                            </tr>
+                            <td>Small Straight</td>
+                            <td>+ 30 poäng</td>
+                            <tr>
+                                <td>Large Straight</td>
+                                <td>+ 40 poäng</td>
+                            </tr>
+                            <tr>
+                                <td>Yatzee</td>
+                                <td>+ 50 poäng</td>
+                            </tr>
+                            <tr>
+                                <td>Chance</td>
+                                <td>Summera alla tärningar</td>
+                            </tr>
+                            <tr>
+                                <td>Yatzee Bonus</td>
+                                <td>checkbox för varje bonus</td>
+                                <td>poäng 100 * X</td>
+                            </tr>
+                            <tr>
+                                <td>Totalt Övre Sektion</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Totalt Nedre Sektion</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>Slutresultat</td>
+                                <td>... summera med JavaScript</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </main>
 
@@ -28,11 +145,11 @@
         <!-- ? Ha som footer istället -->
         <!-- w-24 -->
         <aside
-            class="border-md my-4 rounded-l-md bg-slate-400 p-2 transition-all delay-300 duration-150"
+            class="border-md my-2 h-screen max-w-64 flex-shrink-0 rounded-l-md bg-violet-500 transition-all delay-300 duration-150"
             id="sidebar-chat-container"
         >
             <div class="grid grid-cols-5 items-center">
-                <header class="col-span-4"><h1>Chat</h1></header>
+                <header class="col-span-4 text-white"><h1>Chat</h1></header>
                 <button class="size-fit border-black bg-red-500" id="chat-toggle">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -47,34 +164,29 @@
                 </button>
             </div>
 
-            <h2>Chat meddelanden</h2>
-            <div class="flex h-screen flex-col rounded-md p-4">
+            <!-- Chat Meddelanden -->
+            <div class="flex h-full w-full flex-col rounded-md bg-slate-400 p-3">
                 <div class="my-4 flex-1 rounded-md bg-gray-300 p-2" id="message-container">
                     <div id="display-user">display user</div>
                     <div id="display-message">display message</div>
                 </div>
 
-                <form class="flex gap-2" id="message-form">
-                    <div class="flex flex-col gap-2">
-                        <input type="text" id="user-input" placeholder="Skriv ditt namn..." autofocus />
-                        <input type="text" id="message-input" placeholder="Skriv meddelande" />
+                <form class="flex flex-shrink-0 gap-2" id="message-form">
+                    <div class="flex w-full flex-col gap-2">
+                        <input
+                            type="text"
+                            id="user-input"
+                            placeholder="Användarnamn"
+                            class="rounded border border-gray-400 p-2"
+                        />
+                        <textarea
+                            type="text"
+                            id="message-input"
+                            placeholder="Meddelande"
+                            class="rounded border border-gray-400 p-2"
+                        ></textarea>
+                        <button type="submit" class="bg-blue-600 p-2 text-white hover:bg-blue-700">Skicka</button>
                     </div>
-                    <button class="rounded-full border border-black bg-blue-500" type="submit">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="m-2 size-8 rounded-full"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
-                            />
-                        </svg>
-                    </button>
                 </form>
             </div>
 

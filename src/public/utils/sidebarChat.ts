@@ -31,7 +31,7 @@ export function toggleChat(e: MouseEvent) {
 
     console.debug('🪳 toggling hidden...');
     sidebarContainer?.classList.toggle('w-0');
-    sidebarContainer?.classList.toggle('p-4');
+
     sidebarContainer?.classList.toggle('overflow-hidden');
     // sidebarContainer?.classList.toggle('w-full');
     // sidebarContainer?.classList.toggle('#hidden');
