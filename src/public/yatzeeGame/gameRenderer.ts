@@ -86,7 +86,7 @@ export class GameRender {
             this.playerListElement.innerHTML = players
                 .map(
                     (player) =>
-                        `<li class="px-2 ${currentPlayer === player ? 'bg-blue-600' : 'bg-gray-600'} rounded">${player}</li>`,
+                        `<li class="px-2 ${currentPlayer === player ? 'bg-blue-500 shadow-blue-800' : 'bg-gray-600'} rounded">${player}</li>`,
                 )
                 .join('');
         } else {
@@ -183,7 +183,7 @@ export class GameRender {
 
                         <!-- FINAL BUTTON -->
                         <div id="final-kept-dice" class="flex justify-center p-2">
-                            <button class="bg-red-500 shadow-red-900" id="final-kept-dice-btn">Skicka slutvärdet</button>
+                            <button class="bg-red-500 shadow-red-900/50" id="final-kept-dice-btn">Skicka slutvärdet</button>
                         </div>
                     </div>
 
