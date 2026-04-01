@@ -214,6 +214,8 @@ export class ThreeScene {
     private diceBodies: RAPIER.RigidBody[] = [];
     private pendingValues: number[] = [];
     private settled: boolean[] = [false, false, false, false, false];
+    private simulationActive: boolean = false;
+
     // Callback to GameRender
     private onDiceSettled: ((values: number[]) => void) | null = null;
 
@@ -252,10 +254,13 @@ export class ThreeScene {
         const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#c77dff'];
         const spacing = 1.2;
         const startX = -2.4;
+
         for (let i = 0; i < 5; i++) {
             const position = new THREE.Vector3(startX + i * spacing, 0, 0);
             const die = new Dice3D(this.scene, position, 0.8, colors[i]);
             this.dice.push(die);
+            console.debug('🪳 GÖM innan klickar på knappen "kasta tärningar"');
+            die.getMesh().visible = false;
         }
 
         this.camera.position.set(0, 7, 6);
@@ -515,7 +520,7 @@ export class ThreeScene {
         // console.group(`private animate()`); räknar oändligt med try finally
         requestAnimationFrame(() => this.animate());
 
-        if (this.world) {
+        if (this.simulationActive && this.world) {
             this.world.step();
 
             this.diceBodies.forEach((body, i) => {
@@ -558,6 +563,7 @@ export class ThreeScene {
             });
         }
 
+        // Visar statisk bild innan första tärningskast
         this.renderer.render(this.scene, this.camera);
     }
 
@@ -574,5 +580,12 @@ export class ThreeScene {
 
         window.addEventListener('resize', resize);
         resize(); // call direkt för att sätta startstorlek
+    }
+
+    public startSimulation(): void {
+        console.info('startSimulation()');
+        this.simulationActive = true;
+        console.debug('🪳 Visar tärningar igen');
+        this.dice.forEach((die) => (die.getMesh().visible = true));
     }
 }
