@@ -27,14 +27,7 @@ const io = new Server(server, {
 
 const port = 3000;
 
-// MongoDB
-/* För mongoose
-const MessageModel = require('./models/messageModel');
-
-const connectionMongoDB = require('./connectionMongoDB');
-connectionMongoDB(); */
-// await initDb(); Kan inte använda await överst i commonjs till skillnad mot ES6
-
+// Starta MongoDB
 (async () => {
     await initDb();
     console.log('DB initierad!');
@@ -43,25 +36,14 @@ connectionMongoDB(); */
     process.exit(1);
 });
 
-/* (async () => {
-    try {
-        await initDb()
-        console.log('DB initierad!')
-    } catch (error: any) {
-        console.error('Failed to initialise database:', error);
-        process.exit(1)
-    }
-})(); */
 
-// Enable after not using vite
+// Använd för build, annars löser Vite
 // app.use(express.static('src/public'));
 
 // Endpoint för att visa meddelanden från MongoDB
 app.get('/rounds', async (req: Request, res: Response) => {
     try {
         const db = getDb();
-        // const roundsCollection = db.collection<RoundResult>('playerRounds')
-        // const roundsCollection: RoundResult = db.collection('playerRounds');
         //? Collection property, ska inte typas
         const roundsCollection = db.collection('playerRounds');
 
