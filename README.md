@@ -1,13 +1,15 @@
-# Set-up
+# Starta Projekt
 
-npm init -y
-npm install mongodb
-npm install -D @types/node
+1. npm install
+2. npm run dev
+    - Startar server med Vite
 
 # Run Server
 
 npm run dev
 npm run start
+
+---
 
 - npx --watch server.ts
 
