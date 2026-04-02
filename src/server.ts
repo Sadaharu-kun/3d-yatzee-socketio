@@ -57,17 +57,22 @@ connectionMongoDB(); */
 // app.use(express.static('src/public'));
 
 // Endpoint för att visa meddelanden från MongoDB
-app.get('/messages', async (req: Request, res: Response) => {
+app.get('/rounds', async (req: Request, res: Response) => {
     try {
-        console.error('/messages req och res');
-        console.error('mongodb find() inte implementerad än.');
-        // const allMessages = await MessageModel.find()
-        // return res.status(200).json(allMessages)
-    } catch (error: any) {
-        return res.status(500).json({
-            ok: false,
-            error: error.message,
+        const db = getDb();
+        // const roundsCollection = db.collection<RoundResult>('playerRounds')
+        // const roundsCollection: RoundResult = db.collection('playerRounds');
+        //? Collection property, ska inte typas
+        const roundsCollection = db.collection('playerRounds');
+
+        const rounds = await roundsCollection.find({}).toArray();
+
+        res.status(200).json({
+            ok: true,
+            data: rounds,
         });
+    } catch (error) {
+        console.error('Error när spara till mdb. Error:', error);
     }
 });
 
