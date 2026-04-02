@@ -15,8 +15,9 @@ button {
 }
 
 table, th, td {
-    @apply border border-black text-black;
+    @apply border border-black text-black p-2;
 }
+th {@apply bg-blue-500;}
 
 header {
     @apply m-2 text-center font-semibold;

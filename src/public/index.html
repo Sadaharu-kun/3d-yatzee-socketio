@@ -30,12 +30,18 @@
                 <!-- [ ] Måste ta upp h-full -->
                 <div class="flex h-full flex-1 gap-2 p-2">
                     <!-- Har även three-container innuti klassen för isolering -->
-                    <div class="min-h-0 flex-1" id="yatzee-game-container"></div>
+                    <div class="min-h-0 flex-1" id="yatzee-game-container">
+                        <div class="size-full rounded-lg border-4 border-violet-900 bg-violet-500">
+                            <div class="m-4 rounded-lg border bg-zinc-700 p-4 text-center font-semibold">
+                                Skriv något i chatten för att gå med i spelet
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Bottom section: Score container -->
-                <div class="max-h-[50%] flex-shrink-0 overflow-auto bg-green-500" id="score-container">
-                    <table class="w-full">
+                <div class="flex max-h-[50%] flex-shrink-0 gap-4 overflow-auto bg-blue-800" id="score-container">
+                    <table class="w-full bg-blue-400">
                         <thead>
                             <tr>
                                 <th></th>
@@ -43,97 +49,153 @@
                                 <th></th>
                                 <th>Spelare</th>
                             </tr>
-                            <tr id="player-names">
+                            <tr id="player-names-upper">
                                 <th>Övre Sektion</th>
-                                <th>Räkna Poäng</th>
+                                <th>Info</th>
                                 <th>Räkna Poäng</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr></tr>
+                        <tbody id="tbody-upper">
                             <tr>
-                                <td>Två</td>
+                                <th>Ettor</th>
                                 <td>Addera bara ettor</td>
+                                <td></td>
+                                <td></td>
+                                <!-- Spelare 1 poäng för "Ettor" -->
+                                <!-- TD: Spalare 2 poäng för "Ettor" -->
                             </tr>
                             <tr>
-                                <td>Tre</td>
+                                <th>Tvåor</th>
                                 <td>Addera bara ihop tvåor</td>
-                            </tr>
-                            <tr>
-                                <td>Fyra</td>
-                                <td>Addera bara ihop fyror</td>
-                            </tr>
-                            <td>Fem</td>
-                            <td>Addera bara ihop femmor</td>
-                            <tr>
-                                <td>Sex</td>
-                                <td>Addera bara ihop sexor</td>
-                            </tr>
-                            <tr>
-                                <td>Totalt</td>
+                                <td></td>
                                 <td></td>
                             </tr>
                             <tr>
-                                <td>Bonus</td>
-                                <td>Om summan blir 63 eller över</td>
-                                <td>+ 35 poäng</td>
+                                <th>Treor</th>
+                                <td>Addera bara ihop treor</td>
+                                <td></td>
+                                <td></td>
                             </tr>
                             <tr>
-                                <td>Resultat</td>
+                                <th>Fyror</th>
+                                <td>Addera bara ihop fyror</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Femmor</th>
+                                <td>Addera bara ihop femmor</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Sexor</th>
+                                <td>Addera bara ihop sexor</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Totalt</th>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Bonus</th>
+                                <td>Om summan blir 63 eller över</td>
+                                <td>+ 35 poäng</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Resultat</th>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <!-- Player 1 summerade resultat -->
                             </tr>
                         </tbody>
                     </table>
 
-                    <table>
+                    <table class="w-full bg-blue-400">
                         <thead>
                             <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th>Spelare</th>
+                            </tr>
+                            <tr id="player-names-lower">
                                 <th>Nedre Sektion</th>
+                                <th>Info</th>
+                                <th>Räkna Poäng</th>
                                 <td></td>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="tbody-lower">
                             <tr>
-                                <td>3 kombo</td>
+                                <th>3 kombo</th>
                                 <td>Addera summan av alla tärningar</td>
+                                <td></td>
+                                <td></td>
                             </tr>
                             <tr>
-                                <td>4 kombo</td>
+                                <th>4 kombo</th>
                                 <td>Addera summan av alla tärningar</td>
+                                <td></td>
+                                <td></td>
                             </tr>
                             <tr>
-                                <td>Full House</td>
+                                <th>Full House</th>
+                                <td>2 av en och 3 av en</td>
                                 <td>+ 25 poäng</td>
+                                <td></td>
                             </tr>
-                            <td>Small Straight</td>
-                            <td>+ 30 poäng</td>
                             <tr>
-                                <td>Large Straight</td>
+                                <th>Small Straight</th>
+                                <td>Sekvens av 4</td>
+                                <td>+ 30 poäng</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Large Straight</th>
+                                <td>Sekvens av 5</td>
                                 <td>+ 40 poäng</td>
+                                <td></td>
                             </tr>
                             <tr>
-                                <td>Yatzee</td>
+                                <th>Yatzee</th>
+                                <td>5 av samma typ</td>
                                 <td>+ 50 poäng</td>
+                                <td></td>
                             </tr>
                             <tr>
-                                <td>Chance</td>
+                                <th>Chance</th>
                                 <td>Summera alla tärningar</td>
+                                <td></td>
+                                <td></td>
                             </tr>
                             <tr>
-                                <td>Yatzee Bonus</td>
+                                <th>Yatzee Bonus</th>
                                 <td>checkbox för varje bonus</td>
                                 <td>poäng 100 * X</td>
-                            </tr>
-                            <tr>
-                                <td>Totalt Övre Sektion</td>
                                 <td></td>
                             </tr>
                             <tr>
-                                <td>Totalt Nedre Sektion</td>
+                                <th>Totalt Övre Sektion</th>
+                                <td></td>
+                                <td></td>
                                 <td></td>
                             </tr>
                             <tr>
-                                <td>Slutresultat</td>
+                                <th>Totalt Nedre Sektion</th>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th>Slutresultat</th>
                                 <td>... summera med JavaScript</td>
+                                <td></td>
                             </tr>
                         </tbody>
                     </table>
@@ -145,7 +207,7 @@
         <!-- ? Ha som footer istället -->
         <!-- w-24 -->
         <aside
-            class="border-md my-2 h-screen max-w-64 flex-shrink-0 rounded-l-md bg-violet-500 transition-all delay-300 duration-150"
+            class="border-md my-2 h-screen w-64 max-w-64 flex-shrink-0 rounded-l-md bg-violet-500 transition-all delay-300 duration-150"
             id="sidebar-chat-container"
         >
             <div class="grid grid-cols-5 items-center">
@@ -167,8 +229,8 @@
             <!-- Chat Meddelanden -->
             <div class="flex h-full w-full flex-col rounded-md bg-slate-400 p-3">
                 <div class="my-4 flex-1 rounded-md bg-gray-300 p-2" id="message-container">
-                    <div id="display-user">display user</div>
-                    <div id="display-message">display message</div>
+                    <!-- <div id="display-user">display user</div>
+                    <div id="display-message">display message</div> -->
                 </div>
 
                 <form class="flex flex-shrink-0 gap-2" id="message-form">

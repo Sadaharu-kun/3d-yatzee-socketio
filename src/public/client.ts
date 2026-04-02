@@ -1,4 +1,4 @@
-import type { UserMessage, PlayerState, GameState, FinalGameState, FinalGameResults } from '../types.js';
+import type { UserMessage, PlayerState, GameState, FinalGameState, FinalGameResults, RoundResult } from '../types.js';
 
 import { io } from 'socket.io-client'; // Vite rpoxy
 import { initSidebarChat } from './utils/sidebarChat.ts';
@@ -6,6 +6,7 @@ import { GameRender } from './yatzeeGame/gameRenderer.ts';
 import { ThreeScene } from './utils/threejsDice.ts';
 import { ScoreTable } from './utils/scoreTable.ts';
 import { lightingContext } from 'three/src/nodes/lighting/LightingContextNode.js';
+import { YatzeeGame } from './yatzeeGame/yatzeeGame.ts';
 // import type { Socket } from 'socket.io'; sen utan vite?
 
 let gameRender: GameRender | null = null;
@@ -13,6 +14,7 @@ let threeScene: ThreeScene | null = null; //! hanteras i klassen
 let scoreTable: ScoreTable | null = null; // Hanteras i ScoreTable
 let pendingPlayers: string[] | null = null;
 let pendingCurrentPlayer: string | null = null;
+let scoreSelectionEnabled: boolean = false; // Hindra flera calls
 
 // Best practice är att samla DOM element överst
 let socket: ReturnType<typeof io>;
@@ -64,8 +66,10 @@ addEventListener('DOMContentLoaded', () => {
     try {
         scoreTable = new ScoreTable();
         console.info('ScoreTable är initierat');
+
+        if (gameRender) enableScoreSelection();
     } catch (error) {
-        console.error('Lyckades inte initiera ScoreTable.', error);
+        console.error('Lyckades inte initiera ScoreTable. Error:', error);
     }
 
     initSidebarChat();
@@ -117,8 +121,9 @@ function initChat(): void {
     socket.on('updateScore', (data: { player: string; category: string; score: number }) => {
         console.debug('🪳 Fick nya poäng från en annan spelare -->', data);
 
-        // Uppdatera poändtabellen för ALLA spelare
+        // Uppdatera poängtabellen för ALLA spelare
         if (!scoreTable) console.error('Hittar inte scoreTable');
+
         // scoreTable?.updateScore(data.player, data.category, data.score)
         // Destrukturera innan utan att ange data?
         scoreTable?.updateScore(data.player, data.category, data.score);
@@ -184,7 +189,27 @@ function handleSubmit(e: Event) {
                 updatePlayerScore(player, category, score);
 
                 console.debug('🪳 EMIT individuell runda till server för de andra spelarna');
-                const roundScoreEvent: {
+
+                console.table({ player, category, score });
+                console.warn('Kolla vilken runda som sätts för varje spelare');
+
+                //! Får nummer, med är ändå alltid 1
+                //! const currentRound = gameRender?.getGameState().round || 0;
+
+                const currentRound = gameRender?.getRound() || 0;
+                /* if (currentRound === 0)
+                    return alert(`Antingen första runda, annars ökade inte currentRound --> nu: ${currentRound}`);
+                alert(`currentRound: ${currentRound}`); */
+
+                const roundResult: RoundResult = {
+                    player: player,
+                    category: category,
+                    score: score,
+                    round: currentRound,
+                };
+                // alert(`gameRender?.getGameState().round --> ${gameRender?.getGameState().round}`);
+                // alert(`Vilket sätts? gameRender?.getGameState().round || 1--> ${gameRender?.getGameState().round || 1}`,);
+                /* const roundScoreEvent: {
                     player: string;
                     category: string;
                     score: number;
@@ -194,10 +219,10 @@ function handleSubmit(e: Event) {
                     category: category,
                     score: score,
                     round: gameRender?.getGameState().round || 1,
-                };
+                }; */
 
-                console.info('EMIT --"updateScore"--> roundScoreEvent:', roundScoreEvent);
-                socket.emit('updateScore', roundScoreEvent);
+                console.info('EMIT --"updateScore"--> roundResult:', roundResult);
+                socket.emit('updateScore', roundResult);
             });
 
             // 2. Final Dice --> (varje runda)
@@ -210,11 +235,17 @@ function handleSubmit(e: Event) {
                     dice: gameState.dice,
                     scores: gameState.scores,
                     rollsLeft: gameState.rollsLeft,
-                    round: gameState.round,
+                    round: gameState.round, //! Kan bli fel om inte ökar
                 };
 
                 console.debug('🪳 Sending turn result to server:', turnResult);
                 socket.emit('turnResult', turnResult);
+            });
+
+            // 2. Highlight Categories in table
+            gameRender.setOnComboSuggestion((validCategories: string[]) => {
+                console.info('gameRender.setOnComboSuggestion(validCategories)', validCategories);
+                scoreTable?.highlightCategories(validCategories);
             });
 
             // 3. Final dice callback (VID SPELETS SLUT)
@@ -235,20 +266,56 @@ function handleSubmit(e: Event) {
             }
         }
 
+        // Aktivera scoreSelection
+        enableScoreSelection();
+
         const messageData: UserMessage = { username, message };
         socket.emit('chatMessage', messageData);
         messageInput.value = '';
     }
 }
 
+function enableScoreSelection(): void {
+    console.info('enableScoreSelection()');
+    if (scoreSelectionEnabled) {
+        console.debug('🪳 scoreSelection är redan aktiv');
+        return;
+    }
+    console.info('enableScoreSelection() aktiverad!');
+
+    if (!scoreTable) return console.error('scoreTable är inte initierat');
+    if (!gameRender) return console.error('GameRender är inte initierat');
+
+    scoreTable.enableScoreSelection((player: string, category: string) => {
+        console.debug(`Vald poäng (${player}) : ${category}`);
+
+        const gameState = gameRender?.getGameState();
+        if (!gameState) return console.error('Inget game state hittas');
+
+        if (gameState.currentPlayer !== player) {
+            console.warn(`Är inte ${player}s tur. Spelare nu är ${gameState.currentPlayer}`);
+            return;
+        }
+
+        // Har funktion som kollar om kategori redan uppdaten. Köra här?
+
+        /* console.info('Kalla på scoreCategory(category) från gameRender');
+
+        scoreSelectionEnabled = true;
+        console.info('scoreSelection aktiverat!'); */
+        console.warn('GameRender scoreCategory(category) -->', category);
+        gameRender?.scoreCategory(category);
+    });
+}
+
 function addMessageToChat(msg: UserMessage) {
     console.log('trying to  add message to chat...');
     if (!messageContainer) return console.error('messageContainer missing');
 
-    const newMessageEl = document.createElement('li');
+    const newMessageEl = document.createElement('div');
     newMessageEl.innerHTML = `
             <div class="grid-grid-cols-2">
-                <div id="username">${msg.username}</div>
+                <div class="rounded-full text-sm" id="username"><span class="px-2 border border-black rounded-full bg-slate-400">${msg.username}</span></div>
                 <div class="flex flex-shrink-0 border px-2 border-black rounded-md bg-blue-500" id="user-message">${msg.message}</div>
             </div>
         `;
@@ -275,9 +342,11 @@ function showPlayers(players: string[], currentPlayer?: string) {
 
     //====== ScoreTable ======
     // Uppdatera poängtabellen
+    console.info('Ska uppdatera poängtabellen');
     if (!scoreTable) {
         console.error('Hittar inte scoreTable');
     }
+
     scoreTable?.updatePlayers(players);
 }
 

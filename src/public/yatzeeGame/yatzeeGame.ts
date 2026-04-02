@@ -18,8 +18,21 @@ export class YatzeeGame {
             rollsLeft: 3,
             scores: {},
             currentPlayer: player,
-            round: 0 //! om 0 är det fel
+            round: 1,
         };
+
+        console.debug('🪳 addPlayer till yatzee game state');
+        this.addPlayer(player);
+    }
+
+    public decrementRollsLeft(): void {
+        console.info('decrementRollsLeft()');
+        if (this.state.rollsLeft > 0) {
+            this.state.rollsLeft--;
+            console.debug('🪳 rollsLeft DECREASED to -->', this.state.rollsLeft);
+        } else {
+            console.warn('Kan inte minska rollsLeft, är redan 0!');
+        }
     }
 
     //? players: PlayerState[]
@@ -49,29 +62,63 @@ export class YatzeeGame {
     }
 
     nextTurn(): void {
-        console.debug('🪳 newTurn()');
-        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-        if (this.currentPlayerIndex === 0) this.round++; // new round after all players go
-        this.state.rollsLeft = 3; // Återställ kast
-        //!this.state.dice = [0, 0, 0, 0, 0]; // Behövs tärningar ställas om?
-    }
+        console.info(`nextTurn() BEFORE - Current player index:', ${this.currentPlayerIndex}`);
+        console.debug('🪳 nextTurn() BEFORE - Round:', this.round);
+        // alert(`currentPlayerIndex: ${this.currentPlayerIndex}`);
 
-    scoreCategory(combo: DiceCombo): void {
-        console.info('scoreCategory(combo) -->', combo);
+        // alert(`BEFORE round: ${this.round}`);
+        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+
+        console.debug('🪳 nextTurn() AFTER - New player index:', this.currentPlayerIndex);
+
+        if (this.currentPlayerIndex === 0) {
+            this.round++;
+            // alert(`RUNDA ökad till --> ${this.round}`);
+            console.debug('🪳 nextTurn() - Round incremented to:', this.round);
+        }
+
+        // Synca rollningar, runda, och spelare
+        this.state.rollsLeft = 3;
+        this.state.round = this.round;
+        this.state.currentPlayer = this.players[this.currentPlayerIndex]?.playerName || '';
+    }
+    /* nextTurn(): void {
+        alert('🪳 nextTurn()');
+
+        const wasLastPlayer = this.currentPlayerIndex === this.players.length - 1;
+
+        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+        if (wasLastPlayer) this.round++; // Öka bara efter sista spelaren, för att lösa om bara en spelare
+
+        //? Körs när 1 spelare, vilket alltid blir sannt
+        if (this.currentPlayerIndex === 0) this.round++; // new round after all players go
+
+        alert('🪳 återställer kast inför nästa runda');
+        this.state.rollsLeft = 3; // Återställ kast
+
+        alert('Syncar currentPlayer i state');
+        this.state.currentPlayer = this.players[this.currentPlayerIndex]?.playerName ?? ''; // hittar inte namn som sträng, stör det något?
+    } */
+
+    scoreCategory(combo: DiceCombo): number {
+        console.warn('scoreCategory(combo) -->', combo);
 
         const player = this.getCurrentPlayer();
         console.info('GOT player:', player);
 
         if (player.scores[combo] !== undefined) {
             console.warn('Already scored this category!');
-            return;
+            return 0;
         }
 
         // Räkna poäng och spara
-        player.scores[combo] = this.calculateScore(combo);
+        const score = this.calculateScore(combo);
+        // player.scores[combo] = this.calculateScore(combo);
+        player.scores[combo] = score;
 
         console.debug('🪳 nästa tur/spelare...');
-        this.nextTurn();
+        //! this.nextTurn(); Inte öka än, sker med egen metod i gameRender
+        return score;
     }
 
     public getScoreForCombo(combo: DiceCombo): number {
@@ -121,9 +168,9 @@ export class YatzeeGame {
         console.group(`rollDice(unwantedDice)`, unwantedDice);
 
         try {
-            // Check if there are rolls left
+            // Finns det kvar kast?
             if (this.state.rollsLeft === 0) {
-                console.warn('No rolls left! Cannot roll again.');
+                console.warn('Inga kast kvar! Kan inte kasta igen!');
                 return this.state.dice;
             }
             console.debug(`Du har ${this.state.rollsLeft} kvar`);
@@ -139,7 +186,9 @@ export class YatzeeGame {
 
             // Kasta tärningar som inte ville behålla
             for (let i = 0; i < newDice.length; i++) {
-                if (!unwantedDice[i]) {
+                // true == re-roll
+                // if (!unwantedDice[i])  tidigare omvänt
+                if (unwantedDice[i]) {
                     // Rulla om tärningen (value between 1-6)
                     console.warn('Borde jag använda Math.random om sätts med Fysiken?');
                     newDice[i] = Math.floor(Math.random() * 6) + 1;
@@ -148,7 +197,9 @@ export class YatzeeGame {
 
             // Update state
             this.state.dice = newDice;
+            console.warn('DESCREASING rollsLeft FROM', this.state.rollsLeft);
             this.state.rollsLeft--;
+            console.warn('DESCREASING rollsLeft TO', this.state.rollsLeft);
 
             console.debug('🪳 Nya tärningsvärden:', this.state.dice);
             console.debug('🪳 Kvarstående kast:', this.state.rollsLeft);
@@ -182,7 +233,9 @@ export class YatzeeGame {
             // Tärningsvärde - 1 pga nollindexering
             // newDiceArray.forEach((dieVal: number) => frequencyArr[dieVal - 1]!++); // frequencyArr[dieVal - 1] = frequencyArr[dieval - 1] + 1
             // Samma sak utan assertion. Är det bättre?
-            newDiceArray.forEach((dieVal: number) => frequencyArr[dieVal - 1] ?? 0); // frequencyArr[dieVal - 1] = frequencyArr[dieval - 1] + 1
+            //! newDiceArray.forEach((dieVal: number) => frequencyArr[dieVal - 1] ?? 0); // frequencyArr[dieVal - 1] = frequencyArr[dieval - 1] + 1
+            //? bug: ökar aldrig
+            newDiceArray.forEach((dieVal: number) => frequencyArr[dieVal - 1]!++);
 
             console.info('frequencyArr:', frequencyArr);
 
@@ -243,13 +296,18 @@ export class YatzeeGame {
             const getSum = (a: number, b: number): number => a + b;
 
             switch (diceCombo) {
-                /* case 'largeStraight':
-                    console.log('CASE largeStraight');
-                    break;
+                case 'yatzee':
+                    return 50;
+                case 'largeStraight':
+                    return 40;
                 case 'smallStraight':
+                    return 30;
                 case 'fullHouse':
+                    return 25;
                 case 'fourOfAKind':
-                case 'threeOfAKind':  */
+                    return dice.reduce((a, b) => a + b, 0);
+                case 'threeOfAKind':
+                    return dice.reduce((a, b) => a + b, 0);
                 case 'sixes':
                     return dice.filter((dieValue) => dieValue === 6).reduce((a, b) => a + b, 0);
                 case 'fives':
@@ -266,10 +324,30 @@ export class YatzeeGame {
                     return dice.reduce((a, b) => a + b, 0);
                 default:
                     console.error('Inget switch case för diceCombo. Returnerar 0 som falskt värde');
+                    alert(`Inget switch case för ${diceCombo}`);
                     return 0;
             }
         } finally {
             console.groupEnd();
         }
+    }
+
+    public forceScoreCategory(combo: DiceCombo, score: number): void {
+        console.info('forceScoreCategory(combo, score) -->', combo, score);
+        alert('Ge 0 som poäng då ingen mer cell till scoretabellen');
+        const player = this.getCurrentPlayer();
+
+        if (player.scores[combo] !== undefined) {
+            console.warn('Already scored this category!');
+            return;
+        }
+
+        player.scores[combo] = score;
+        this.nextTurn();
+    }
+
+    public nextRound(): void {
+        console.debug('🪳 Nu går till nästa runda');
+        this.nextTurn();
     }
 }

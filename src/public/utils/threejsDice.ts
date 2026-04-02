@@ -215,7 +215,7 @@ export class ThreeScene {
     private pendingValues: number[] = [];
     private settled: boolean[] = [false, false, false, false, false];
     private simulationActive: boolean = false;
-
+    private resizeObserver: ResizeObserver | null = null;
     // Callback to GameRender
     private onDiceSettled: ((values: number[]) => void) | null = null;
 
@@ -231,16 +231,25 @@ export class ThreeScene {
         // Initialize camera with placeholder aspect ratio, corrected in requestAnimationFrame
         this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
+
+        // Fixa sizing - set canvas to fill container
+        this.renderer.domElement.style.display = 'block';
+        this.renderer.domElement.style.width = '100%';
+        this.renderer.domElement.style.height = '100%';
         container.appendChild(this.renderer.domElement);
 
-        // Delay size init until after DOM layout is complete
-        requestAnimationFrame(() => {
-            const width = container.offsetWidth;
-            const height = container.offsetHeight;
-            this.camera.aspect = width / height;
-            this.camera.updateProjectionMatrix();
-            this.renderer.setSize(width, height);
+        // Make container relative for absolute positioning if needed
+        container.style.position = 'relative';
+        container.style.width = '100%';
+        container.style.height = '100%';
+
+        // Use ResizeObserver to watch container size changes
+        this.resizeObserver = new ResizeObserver(() => {
+            this.updateRendererSize(container);
         });
+        this.resizeObserver.observe(container);
+        // Initial size setup
+        this.updateRendererSize(container);
 
         // Add lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
@@ -567,10 +576,27 @@ export class ThreeScene {
         this.renderer.render(this.scene, this.camera);
     }
 
+    private updateRendererSize(container: HTMLElement): void {
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        if (width > 0 && height > 0) {
+            this.camera.aspect = width / height;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(width, height);
+        }
+    }
+
     private handleResize(container: HTMLElement): void {
+        window.addEventListener('resize', () => {
+            this.updateRendererSize(container);
+        });
+    }
+    /*   private handleResize(container: HTMLElement): void {
         const resize = () => {
-            const width = container.offsetWidth;
-            const height = container.offsetHeight;
+            // const width = container.offsetWidth;
+            // const height = container.offsetHeight;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
             if (width && height) {
                 this.camera.aspect = width / height;
                 this.camera.updateProjectionMatrix();
@@ -579,9 +605,17 @@ export class ThreeScene {
         };
 
         window.addEventListener('resize', resize);
+        console.warn('Resizing 3D simulation');
         resize(); // call direkt för att sätta startstorlek
-    }
+    } */
 
+    // Clean up observer when done
+    public dispose(): void {
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+    }
     public startSimulation(): void {
         console.info('startSimulation()');
         this.simulationActive = true;

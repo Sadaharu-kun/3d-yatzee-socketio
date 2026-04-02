@@ -11,6 +11,14 @@ export interface PlayerState {
     scores: GameState['scores']
 }
 
+export type RoundResult = {
+    player: string;
+    category: string;
+    score: number;
+    round: number;
+};
+
+
 // Tuple
 //! tidigare KeptDice # unwanted bättre då man väljer vilka man vill kasta och inte behålla
 // [ ] Invertera logiken
@@ -55,3 +63,20 @@ export type DiceCombo =
     | 'largeStraight'
     | 'yatzee'
     | 'chance';
+
+
+export const CategoryMap: Record<string, DiceCombo> = {
+    Ettor: 'ones',
+    Tvåor: 'twos',
+    Treor: 'threes',
+    Fyror: 'fours',
+    Femmor: 'fives',
+    Sexor: 'sixes',
+    '3 kombo': 'threeOfAKind',
+    '4 kombo': 'fourOfAKind',
+    'Full House': 'fullHouse',
+    'Small Straight': 'smallStraight',
+    'Large Straight': 'largeStraight',
+    Yatzee: 'yatzee',
+    Chance: 'chance',
+} as const;

@@ -7,11 +7,12 @@ import express from 'express';
 // const express, { Request, Response} = require('express');
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
-import type { UserMessage, PlayerState, GameState } from './types.ts';
+import type { UserMessage, PlayerState, GameState, RoundResult, FinalGameResults } from './types.ts';
 // const { Server } = require('socket.io');
 
 // MongoDB connection
-// const { initDb, getDb } = require('./db');
+// const { initDb, getDb, client } = require('./db');
+import { initDb, getDb, client } from './db.js';
 
 const app = express();
 // app.use(cors())
@@ -33,19 +34,24 @@ const MessageModel = require('./models/messageModel');
 const connectionMongoDB = require('./connectionMongoDB');
 connectionMongoDB(); */
 // await initDb(); Kan inte använda await överst i commonjs till skillnad mot ES6
+
+(async () => {
+    await initDb();
+    console.log('DB initierad!');
+})().catch((error) => {
+    console.error('Failed to initialise database:', error);
+    process.exit(1);
+});
+
 /* (async () => {
     try {
-        await initDb(); // Nu kan använda await
-        console.log('Databasen är initierad');
-
-        server.listen(3000, () => {
-            console.log('Server körs på http://localhost:3000');
-        });
+        await initDb()
+        console.log('DB initierad!')
     } catch (error: any) {
-        console.error('Servern misslyckades:', error);
-        process.exit(1);
+        console.error('Failed to initialise database:', error);
+        process.exit(1)
     }
-})() */ // IIFE
+})(); */
 
 // Enable after not using vite
 // app.use(express.static('src/public'));
@@ -90,6 +96,64 @@ io.on('connection', (socket: Socket) => {
         // Listning i mitten med användare och poäng
         io.emit('newFinalKeptDice', gameState);
         // io.emit('displayFinalKeptDice', )
+    });
+
+    // socket.on('updateScore', async ({ player, category, score, round}: RoundResult) => {
+    socket.on('updateScore', async (roundResultParam: RoundResult) => {
+        console.log('SOCKET ON updateScore -->\n', roundResultParam);
+
+        const { player, category, score, round } = roundResultParam;
+
+        //! score är 0 så !score fastän är 0 failar pga FALSY VÄRDE!!!
+        if (!player || !category || score === undefined || !round)
+            return console.error('Hittar inte egenskaper från roundResult parametern');
+
+        console.table({ player, category, score, round });
+        console.log('Spara till MongoDB');
+        try {
+            const db = getDb();
+            // const roundsCollection = db.collection<RoundResult>('playerRounds')
+            // const roundsCollection: RoundResult = db.collection('playerRounds');
+            //? Collection property, ska inte typas
+            const roundsCollection = db.collection('playerRounds');
+
+            await roundsCollection.insertOne({
+                ...roundResultParam,
+            });
+            console.log('roundResult sparat!');
+
+            console.log('Emitta från server för att fylla tabellen för upkopplade spelare');
+            io.emit('updateScore', roundResultParam);
+        } catch (error) {
+            console.error('Error när spara till mdb. Error:', error);
+        }
+    });
+
+    socket.on('finalGameResult', async (finalGameResultParam: FinalGameResults) => {
+        console.log('SOCKET ON finalGameResult -->\n', finalGameResultParam);
+
+        const { players, finalScores, winner } = finalGameResultParam;
+
+        if (!players || !finalScores)
+            return console.error('Hittar inte spelare/finalScores från finalResults parametern');
+        if (!winner) console.error('Hittar inte vinnaren från finalResults parametern');
+
+        console.table({ players, finalScores, winner });
+        console.log('Spara till MongoDB');
+        try {
+            const db = getDb();
+            // const roundsCollection = db.collection<RoundResult>('playerRounds')
+            // const roundsCollection: RoundResult = db.collection('playerRounds');
+            //? Collection property, ska inte typas
+            const roundsCollection = db.collection('finalScores');
+
+            await roundsCollection.insertOne({
+                ...finalGameResultParam,
+            });
+            console.log('finalGameResult sparat!');
+        } catch (error) {
+            console.error('Error när spara finalResults till mdb. Error:', error);
+        }
     });
 
     socket.on('disconnect', () => {
